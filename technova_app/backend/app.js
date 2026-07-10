@@ -27,7 +27,7 @@ app.post('/crear_ticket', async (req, res) => {
 
         db.query(query, (err, result) => {
             if (err) {
-                // VULNERABILIDAD A10 (Gestión deficiente de condiciones de excepción): Mostrar el error de SQL expone detalles técnicos de la arquitectura.
+                // VULNERABILIDAD A10 (Gestión deficiente de condiciones de excepción): Mostrar el error de SQL expone detalles técnicos de la arquitecturacd.
                 return res.send("Error SQL: " + err.message); 
             }
             res.send("<h1>Ticket creado. Código: " + codigo + "</h1>");
