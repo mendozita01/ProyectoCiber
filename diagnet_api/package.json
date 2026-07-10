@@ -1,1 +1,15 @@
-
+{
+  "name": "diagnet_api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "servidor_api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
