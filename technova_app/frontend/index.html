@@ -1,1 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soporte TechNova - Interno</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 400px;
+            text-align: center;
+        }
+        h2 { color: #2c3e50; }
+        input[type="text"] {
+            width: 90%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover { background-color: #2980b9; }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
 
+    <div class="container">
+        <h2>🛡️ Portal de Soporte TechNova</h2>
+        <p>Ingrese la dirección IP del equipo afectado. El sistema consultará a DiagNet para obtener un diagnóstico automático.</p>
+        
+        <!-- Este formulario enviará un POST a tu servidor Python en la ruta /crear_ticket -->
+        <form action="/crear_ticket" method="POST">
+            <input type="text" name="ip_reportada" placeholder="Ej: 192.168.1.15" required>
+            <button type="submit">Generar Ticket de Soporte</button>
+        </form>
+
+        <div class="footer">
+            Uso exclusivo corporativo. Todo el tráfico está siendo "monitoreado".
+        </div>
+    </div>
+
+</body>
+</html>

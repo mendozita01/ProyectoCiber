@@ -1,12 +1,14 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-import urllib.request, json, mysql.connector
+import urllib.request, json
+import psycopg2
 from urllib.parse import parse_qs
 
-db = mysql.connector.connect(
+db = psycopg2.connect(
     host="localhost",
-    user="root",
-    password="",
-    database="technova_db"
+    port="5433", 
+    user="postgres",
+    password="1234", 
+    dbname="technova_db"
 )
 
 class TechNovaHandler(SimpleHTTPRequestHandler):
