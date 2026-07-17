@@ -105,7 +105,9 @@ class DiagNetHandler(BaseHTTPRequestHandler):
                 estado_equipo,
                 latencia_ms,
                 codigo_diagnostico
-            ) = equipo
+            ) = equipo 
+            
+           #aqui van los payloads
 
             enviar_json(self, {
                 "ip_consultada": ip_encontrada,
