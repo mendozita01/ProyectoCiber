@@ -21,9 +21,6 @@ CREATE SEQUENCE ticket_codigo_seq
 START WITH 1
 INCREMENT BY 1;
 
--- =========================================================
--- 1. EMPLEADOS INTERNOS DE TECHNOVA
--- =========================================================
 
 CREATE TABLE empleados (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -44,12 +41,9 @@ CREATE TABLE empleados (
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_tipo_empleado
-        CHECK (tipo_empleado IN ('admin', 'soporte', 'analista'))
+    CHECK (tipo_empleado IN ('admin', 'soporte', 'analista'))
 );
 
--- =========================================================
--- 2. CATÁLOGO DE DIAGNÓSTICOS 
--- =========================================================
 
 CREATE TABLE catalogo_diagnosticos (
     codigo VARCHAR(50) PRIMARY KEY,
@@ -57,15 +51,13 @@ CREATE TABLE catalogo_diagnosticos (
     descripcion TEXT NOT NULL,
     nivel_alerta VARCHAR(20) NOT NULL,
     recomendacion TEXT,
+
     activo BOOLEAN NOT NULL DEFAULT TRUE,
 
     CONSTRAINT chk_nivel_alerta
-        CHECK (nivel_alerta IN ('baja', 'media', 'alta', 'critica'))
+    CHECK (nivel_alerta IN ('baja', 'media', 'alta', 'critica'))
 );
 
--- =========================================================
--- 3. INVENTARIO DE IPS USADO POR DIAGNET
--- =========================================================
 
 CREATE TABLE diagnet_inventario_ips (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -73,26 +65,22 @@ CREATE TABLE diagnet_inventario_ips (
     ip VARCHAR(45) NOT NULL UNIQUE,
     nombre_equipo VARCHAR(120) NOT NULL,
     area VARCHAR(100) NOT NULL,
-
     estado_equipo VARCHAR(30) NOT NULL,
     latencia_ms INTEGER,
 
     codigo_diagnostico VARCHAR(50) NOT NULL,
-    activo BOOLEAN NOT NULL DEFAULT TRUE,
 
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
     actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_diagnet_catalogo
-        FOREIGN KEY (codigo_diagnostico)
-        REFERENCES catalogo_diagnosticos(codigo),
+    FOREIGN KEY (codigo_diagnostico)
+    REFERENCES catalogo_diagnosticos(codigo),
 
     CONSTRAINT chk_estado_equipo
-        CHECK (estado_equipo IN ('activo', 'lento', 'caido', 'desconocido'))
+    CHECK (estado_equipo IN ('activo', 'lento', 'caido', 'desconocido'))
 );
 
--- =========================================================
--- 4. TICKETS DEL PORTAL TECHNOVA
--- =========================================================
 
 CREATE TABLE tickets (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -112,25 +100,29 @@ CREATE TABLE tickets (
 
     empleado_asignado_id INTEGER,
 
+    inventario_encontrado BOOLEAN,
+    nombre_equipo VARCHAR(120),
+    area_equipo VARCHAR(100),
+    estado_equipo VARCHAR(30),
+
     codigo_diagnostico VARCHAR(255),
     mensaje_diagnostico TEXT,
+    nivel_alerta VARCHAR(20),
+    recomendacion TEXT,
     latencia_ms INTEGER,
 
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_ticket_empleado
-        FOREIGN KEY (empleado_asignado_id)
-        REFERENCES empleados(id)
-        ON DELETE SET NULL,
+    FOREIGN KEY (empleado_asignado_id)
+    REFERENCES empleados(id)
+    ON DELETE SET NULL,
 
     CONSTRAINT chk_estado_ticket
-        CHECK (estado IN ('abierto', 'en_revision', 'diagnosticado', 'asignado', 'cerrado'))
+    CHECK (estado IN ('abierto', 'en_revision', 'diagnosticado', 'asignado', 'cerrado'))
 );
 
--- =========================================================
--- 5. LOGS SIMPLES DE EVENTOS
--- =========================================================
 
 CREATE TABLE logs_eventos (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -145,12 +137,12 @@ CREATE TABLE logs_eventos (
     detalle TEXT,
 
     CONSTRAINT fk_log_ticket
-        FOREIGN KEY (ticket_id)
-        REFERENCES tickets(id)
-        ON DELETE SET NULL,
+    FOREIGN KEY (ticket_id)
+    REFERENCES tickets(id)
+    ON DELETE SET NULL,
 
     CONSTRAINT fk_log_empleado
-        FOREIGN KEY (empleado_id)
-        REFERENCES empleados(id)
-        ON DELETE SET NULL
+    FOREIGN KEY (empleado_id)
+    REFERENCES empleados(id)
+    ON DELETE SET NULL
 );
