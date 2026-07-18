@@ -107,7 +107,7 @@ class DiagNetHandler(BaseHTTPRequestHandler):
                 codigo_diagnostico
             ) = equipo 
             
-           #aqui van los payloads
+           #aqui van los payload
 
             enviar_json(self, {
                 "ip_consultada": ip_encontrada,
