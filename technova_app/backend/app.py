@@ -37,27 +37,31 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         try:
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length).decode("utf-8")
-            params = parse_qs(post_data)
+            
+            # Recibimos el JSON
+            params = json.loads(post_data)
+            
+            # Debug: Imprimir en la consola de Python para ver qué llega
+            print("Datos recibidos en backend:", params)
 
-            ip_reportada = params.get("ip_reportada", [""])[0].strip()
+            # Acceso directo al diccionario (sin usar [0] porque ya no es una lista)
+            ip_reportada = params.get("ip_reportada", "").strip()
 
             if not ip_reportada:
-                self.responder_html(
-                    "<h1>Error</h1><p>Debe ingresar una IP.</p>",
-                    status=400
-                )
+                self.send_response(400)
+                self.end_headers()
                 return
 
-            # Datos temporales hasta conectar el formulario completo.
-            nombre_solicitante = "Solicitante de prueba"
-            correo_solicitante = "sin-correo@cliente.local"
-            telefono_solicitante = ""
-            empresa_solicitante = "Empresa cliente"
-            descripcion_problema = "Solicitud de revisión de conectividad para la IP reportada."
+            # Asignación segura de datos desde el JSON
+            nombre = params.get("nombre_solicitante", "Anónimo")
+            correo = params.get("correo_solicitante", "sin@correo.com")
+            telefono = params.get("telefono_solicitante", "")
+            empresa = params.get("empresa_solicitante", "")
+            descripcion = params.get("descripcion_problema", "")
 
-            # 1. Consultar API externa DiagNet.
+            # 1. Consultar API externa
             datos_api = self.consultar_diagnet(ip_reportada)
-
+            
             inventario_encontrado = datos_api.get("inventario_encontrado")
             nombre_equipo = datos_api.get("nombre_equipo", "")
             area_equipo = datos_api.get("area", "")
@@ -65,43 +69,22 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             latencia_ms = datos_api.get("latencia_ms")
             codigo_diagnostico = datos_api.get("codigo_diagnostico", "ERROR_API")
 
-            if inventario_encontrado is True:
-                estado_ticket = "diagnosticado"
-            else:
-                estado_ticket = "en_revision"
+            estado_ticket = "diagnosticado" if inventario_encontrado else "en_revision"
 
             conexion = obtener_conexion()
             cursor = conexion.cursor()
 
-            # 2. Punto vulnerable: el código recibido desde DiagNet
-            # se usa directamente dentro de una consulta SQL.
-            resultado_catalogo = self.consultar_catalogo_vulnerable(
-                cursor,
-                codigo_diagnostico
-            )
+            # Diagnóstico (VULNERABLE A SQLI - MANTENEMOS ASÍ PARA LA DEMO)
+            resultado_catalogo = self.consultar_catalogo_vulnerable(cursor, codigo_diagnostico)
 
-            mensaje_diagnostico = resultado_catalogo["mensaje_diagnostico"]
-            nivel_alerta = resultado_catalogo["nivel_alerta"]
-            recomendacion = resultado_catalogo["recomendacion"]
-
-            # 3. Guardar ticket.
+            # Guardar en BD
             codigo_ticket = self.guardar_ticket(
-                cursor,
-                nombre_solicitante,
-                correo_solicitante,
-                telefono_solicitante,
-                empresa_solicitante,
-                ip_reportada,
-                descripcion_problema,
-                estado_ticket,
-                inventario_encontrado,
-                nombre_equipo,
-                area_equipo,
-                estado_equipo,
-                codigo_diagnostico,
-                mensaje_diagnostico,
-                nivel_alerta,
-                recomendacion,
+                cursor, nombre, correo, telefono, empresa, ip_reportada, 
+                descripcion, estado_ticket, inventario_encontrado, 
+                nombre_equipo, area_equipo, estado_equipo, codigo_diagnostico,
+                resultado_catalogo["mensaje_diagnostico"],
+                resultado_catalogo["nivel_alerta"],
+                resultado_catalogo["recomendacion"],
                 latencia_ms
             )
 
@@ -109,40 +92,16 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             cursor.close()
             conexion.close()
 
-            html = f"""
-            <h1>Ticket creado correctamente</h1>
+            # Responder éxito
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "success", "ticket": codigo_ticket}).encode("utf-8"))
 
-            <p><strong>Código del ticket:</strong> {codigo_ticket}</p>
-            <p><strong>IP reportada:</strong> {ip_reportada}</p>
-            <p><strong>Estado del ticket:</strong> {estado_ticket}</p>
-
-            <h3>Datos recibidos desde DiagNet</h3>
-            <p><strong>Inventario encontrado:</strong> {inventario_encontrado}</p>
-            <p><strong>Equipo:</strong> {nombre_equipo}</p>
-            <p><strong>Área:</strong> {area_equipo}</p>
-            <p><strong>Estado del equipo:</strong> {estado_equipo}</p>
-            <p><strong>Latencia:</strong> {latencia_ms}</p>
-            <p><strong>Código diagnóstico:</strong> {codigo_diagnostico}</p>
-
-            <h3>Diagnóstico interpretado por TechNova</h3>
-            <pre>{mensaje_diagnostico}</pre>
-            <p><strong>Nivel de alerta:</strong> {nivel_alerta}</p>
-            <p><strong>Recomendación:</strong> {recomendacion}</p>
-
-            <br>
-            <a href="/">Crear otro ticket</a>
-            """
-
-            self.responder_html(html)
-
-        except Exception as error:
-            self.responder_html(
-                f"""
-                <h1>Error creando el ticket</h1>
-                <p>{str(error)}</p>
-                """,
-                status=500
-            )
+        except Exception as e:
+            print("Error en backend:", e) # Esto imprimirá el error real en tu terminal
+            self.send_response(500)
+            self.end_headers()
 
     def consultar_diagnet(self, ip_reportada):
         """

@@ -3,69 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soporte TechNova - Interno</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            max-width: 400px;
-            text-align: center;
-        }
-        h2 { color: #2c3e50; }
-        input[type="text"] {
-            width: 90%;
-            padding: 10px;
-            margin: 15px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-        }
-        button:hover { background-color: #2980b9; }
-        .footer {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #7f8c8d;
-        }
-    </style>
+    <title>TechNova | Portal de Soporte</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Conexión al CSS separado -->
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
 
-    <div class="container">
-        <h2>🛡️ Portal de Soporte TechNova</h2>
-        <p>Ingrese la dirección IP del equipo afectado. El sistema consultará a DiagNet para obtener un diagnóstico automático.</p>
-        
-        <!-- Este formulario enviará un POST a tu servidor Python en la ruta /crear_ticket -->
-        <form action="/crear_ticket" method="POST">
-            <input type="text" name="ip_reportada" placeholder="Ej: 192.168.1.15" required>
-            <button type="submit">Generar Ticket de Soporte</button>
-        </form>
+    <canvas id="networkCanvas"></canvas>
 
-        <div class="footer">
-            Uso exclusivo corporativo. Todo el tráfico está siendo "monitoreado".
+    <header>
+        <div class="logo">
+            <img src="imagenes/logo.png" alt="TechNova Logo" class="header-logo">
+            <h1>Tech<span class="highlight">Nova</span></h1>
+            <span class="slogan">Conectividad Inteligente.</span>
+        </div>
+        <a href="login.html" class="login-link">
+            <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i> Portal Admin
+        </a>
+    </header>
+
+    <main class="hero">
+        <h2>Portal de Soporte</h2>
+        <p>Reporte incidencias de red, latencia o caída de servidores. Nuestro sistema automatizado evaluará la topología en tiempo real para agilizar la resolución.</p>
+        <button class="btn-main" id="btnAbrirModal">
+            <i data-lucide="activity"></i> Generar Ticket de Soporte
+        </button>
+    </main>
+
+    <!-- ESTADÍSTICAS E IMPACTO (SECCIÓN 2) -->
+    <section class="impact-section">
+        <div class="impact-container">
+            <div class="impact-content">
+                <h3>Tecnología respaldada por especialistas</h3>
+                <p>En TechNova no solo diagnosticamos servidores, garantizamos la continuidad de su negocio. Detrás de nuestra automatización, se encuentra un equipo élite listo para intervenir 24/7.</p>
+                <div class="support-img-wrapper">
+                    <img src="imagenes/img2.png" alt="Ingeniero de Soporte" class="support-img">
+                </div>
+            </div>
+            <div class="impact-stats">
+                <div class="stat-item">
+                    <i data-lucide="building-2" class="stat-icon"></i>
+                    <div class="stat-text">
+                        <h4>150+</h4>
+                        <p>Empresas Conectadas</p>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <i data-lucide="check-circle" class="stat-icon"></i>
+                    <div class="stat-text">
+                        <h4>12,400+</h4>
+                        <p>Casos Resueltos</p>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <i data-lucide="clock" class="stat-icon"></i>
+                    <div class="stat-text">
+                        <h4>24/7</h4>
+                        <p>Monitoreo Continuo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CAPACIDADES (SECCIÓN 3 - DISEÑO DE LISTA EDITORIAL) -->
+    <section class="features">
+        <div class="section-title">
+            <h3>Soluciones en Infraestructura TI</h3>
+            <p>Sistemas diseñados para garantizar la operatividad continua y segura de su red corporativa.</p>
+        </div>
+        
+        <div class="features-layout">
+            <div class="features-text-content">
+                <div class="modern-feature-item slide-in-left delay-1">
+                    <div class="feature-number">01</div>
+                    <div class="feature-content">
+                        <div class="feature-header">
+                            <i data-lucide="server-crash"></i>
+                            <h4>Análisis de Continuidad</h4>
+                        </div>
+                        <p>Nuestros sistemas monitorean la respuesta de los servidores corporativos en milisegundos, detectando caídas instantáneamente.</p>
+                    </div>
+                </div>
+                
+                <div class="modern-feature-item slide-in-left delay-2">
+                    <div class="feature-number">02</div>
+                    <div class="feature-content">
+                        <div class="feature-header">
+                            <i data-lucide="zap"></i>
+                            <h4>Tiempos de Respuesta</h4>
+                        </div>
+                        <p>Al reportar una IP, el diagnóstico preliminar se adjunta automáticamente, reduciendo el tiempo de investigación de los técnicos.</p>
+                    </div>
+                </div>
+                
+                <div class="modern-feature-item slide-in-left delay-3">
+                    <div class="feature-number">03</div>
+                    <div class="feature-content">
+                        <div class="feature-header">
+                            <i data-lucide="shield-check"></i>
+                            <h4>Infraestructura Segura</h4>
+                        </div>
+                        <p>Todas las conexiones y reportes internos son gestionados bajo los más altos estándares de protección y confidencialidad.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="features-image-wrapper slide-in-right">
+                <img src="imagenes/img1.jpg" alt="Ingeniero de Infraestructura TI">
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER CON COPYRIGHT -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h4>TechNova</h4>
+                <p>Proveedores líderes en soluciones de infraestructura TI, conectividad inteligente y soporte técnico empresarial.</p>
+            </div>
+            <div class="footer-contact">
+                <h4>Contacto de Soporte</h4>
+                <p><i data-lucide="phone" style="width: 16px; height: 16px; color: var(--accent);"></i> +58 (800) TECH-123</p>
+                <p><i data-lucide="map-pin" style="width: 16px; height: 16px; color: var(--accent);"></i> Edificio TechNova, Piso 4</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 TechNova · Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- MODAL -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <div id="formView">
+                <div class="modal-header">
+                    <h3><i data-lucide="file-text" style="color: var(--primary);"></i> Nuevo Incidente</h3>
+                    <button class="close-btn" id="btnCerrarModalX"><i data-lucide="x"></i></button>
+                </div>
+                <form id="ticketForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nombre">Nombre del Solicitante *</label>
+                            <input type="text" id="nombre" name="nombre_solicitante" required placeholder="Ej: Carlos Pérez">
+                        </div>
+                        <div class="form-group">
+                            <label for="empresa">Empresa / Departamento</label>
+                            <input type="text" id="empresa" name="empresa_solicitante" placeholder="Ej: Recursos Humanos">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="correo">Correo de Contacto *</label>
+                            <input type="email" id="correo" name="correo_solicitante" required placeholder="carlos@empresa.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="telefono">Teléfono</label>
+                            <input type="text" id="telefono" name="telefono_solicitante" placeholder="+58 400 000000">
+                        </div>
+                    </div>
+                    <div class="form-group ip-field">
+                        <label for="ip">Dirección IP Afectada *</label>
+                        <input type="text" id="ip" name="ip_reportada" required placeholder="192.168.1.10">
+                    </div>
+                    <div class="form-group">
+                        <label for="descripcion">Descripción del Problema *</label>
+                        <textarea id="descripcion" name="descripcion_problema" rows="3" required placeholder="Detalle la latencia o el comportamiento inusual..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" id="btnCancelarForm">Cancelar</button>
+                        <button type="submit" class="btn-submit">Enviar a Diagnóstico</button>
+                    </div>
+                </form>
+            </div>
+            <div id="successView">
+                <div class="success-animation">
+                    <i data-lucide="check"></i>
+                </div>
+                <h3 style="color: var(--text-color); font-size: 1.6rem; margin-bottom: 10px;">Ticket Registrado Exitosamente</h3>
+                <p style="color: #666; margin-bottom: 25px;">La IP ha sido enviada al sistema y el caso está registrado para la revisión de nuestros técnicos.</p>
+                <button class="btn-submit" id="btnCerrarExito" style="width: 100%; margin-top:0;">Finalizar</button>
+            </div>
         </div>
     </div>
 
+    <!-- Conexión al JS separado -->
+    <script src="index.js"></script>
 </body>
 </html>
