@@ -1,1 +1,140 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login - TechNova</title>
 
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #0f172a, #1e3a8a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1f2937;
+      }
+
+      .login-card {
+        width: 100%;
+        max-width: 430px;
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 34px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        color: #0f172a;
+      }
+
+      p {
+        margin: 8px 0 26px;
+        color: #64748b;
+        font-size: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 7px;
+        font-weight: bold;
+        font-size: 14px;
+        color: #334155;
+      }
+
+      input {
+        width: 100%;
+        padding: 13px 14px;
+        margin-bottom: 18px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        font-size: 15px;
+      }
+
+      button {
+        width: 100%;
+        border: none;
+        background: #2563eb;
+        color: white;
+        padding: 14px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+      }
+
+      .links {
+        text-align: center;
+        margin-top: 18px;
+      }
+
+      .links a {
+        color: #2563eb;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .hint {
+        margin-top: 22px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 14px;
+        border-radius: 12px;
+        color: #475569;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="login-card">
+      <h1>TechNova</h1>
+      <p>Acceso interno para empleados de soporte</p>
+
+      <form action="/login" method="POST">
+        <label for="usuario">Usuario</label>
+        <input
+          type="text"
+          id="usuario"
+          name="usuario"
+          placeholder="admin"
+          required
+        />
+
+        <label for="password">Contraseña</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Contraseña"
+          required
+        />
+
+        <button type="submit">Ingresar al panel</button>
+      </form>
+
+      <div class="links">
+        <a href="/">Volver al portal público</a>
+      </div>
+
+      <div class="hint">
+        Usuarios de prueba:<br />
+        <strong>admin</strong> / Admin123<br />
+        <strong>soporte1</strong> / Soporte123<br />
+        <strong>analista1</strong> / Analista123
+      </div>
+    </main>
+  </body>
+</html>

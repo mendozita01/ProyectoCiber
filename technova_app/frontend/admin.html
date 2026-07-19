@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Panel Administrativo - TechNova</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f4f7fb;
+        color: #1f2937;
+      }
+
+      header {
+        background: #0f172a;
+        color: white;
+        padding: 20px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      header span {
+        color: #cbd5e1;
+        font-size: 14px;
+      }
+
+      .usuario-navbar {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .usuario-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: right;
+      }
+
+      .avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #2563eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+      }
+
+      .usuario-info strong {
+        display: block;
+        font-size: 15px;
+        color: white;
+      }
+
+      .usuario-info span {
+        display: block;
+        margin-top: 4px;
+        color: #cbd5e1;
+        font-size: 13px;
+      }
+
+      .btn-logout {
+        text-decoration: none;
+        background: #dc2626;
+        color: white;
+        padding: 9px 13px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: bold;
+      }
+
+      .btn-logout:hover {
+        background: #b91c1c;
+      }
+
+      .container {
+        padding: 30px 40px;
+      }
+
+      .top-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+
+      .top-actions a {
+        text-decoration: none;
+        background: #2563eb;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .filters {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .filters input,
+      .filters select {
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        min-width: 220px;
+        background: white;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e2e8f0;
+      }
+
+      .card p {
+        margin: 0;
+        color: #64748b;
+        font-size: 14px;
+      }
+
+      .card h2 {
+        margin: 8px 0 0;
+        font-size: 28px;
+      }
+
+      .table-card {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+      }
+
+      .table-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .table-header h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .table-wrapper {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1150px;
+      }
+
+      th {
+        background: #f8fafc;
+        text-align: left;
+        font-size: 13px;
+        color: #475569;
+        padding: 14px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      td {
+        padding: 14px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 14px;
+        vertical-align: top;
+      }
+
+      tr:hover {
+        background: #f8fafc;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .badge-diagnosticado {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .badge-revision {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .badge-abierto {
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
+
+      .badge-cerrado {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      .alerta-baja {
+        color: #15803d;
+        font-weight: bold;
+      }
+
+      .alerta-media {
+        color: #ca8a04;
+        font-weight: bold;
+      }
+
+      .alerta-alta,
+      .alerta-critica {
+        color: #dc2626;
+        font-weight: bold;
+      }
+
+      .btn-ver {
+        border: none;
+        background: #0f172a;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .btn-ver:hover {
+        background: #1e293b;
+      }
+
+      .empty {
+        padding: 30px;
+        text-align: center;
+        color: #64748b;
+      }
+
+      .error {
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 14px;
+        border-radius: 8px;
+        margin: 16px 20px;
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.65);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 1000;
+      }
+
+      .modal.oculto {
+        display: none;
+      }
+
+      .modal-contenido {
+        background: white;
+        width: 100%;
+        max-width: 850px;
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 18px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      .modal-header {
+        padding: 20px 24px;
+        background: #0f172a;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 18px 18px 0 0;
+      }
+
+      .modal-header h2 {
+        margin: 0;
+        font-size: 21px;
+      }
+
+      .cerrar-modal {
+        border: none;
+        background: transparent;
+        color: white;
+        font-size: 28px;
+        cursor: pointer;
+      }
+
+      .modal-body {
+        padding: 24px;
+      }
+
+      .detalle-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .detalle-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+      }
+
+      .detalle-item p {
+        margin: 0 0 6px;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: bold;
+      }
+
+      .detalle-item span {
+        display: block;
+        color: #1f2937;
+        font-size: 14px;
+        word-break: break-word;
+      }
+
+      .detalle-largo {
+        margin-top: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+      }
+
+      .detalle-largo p {
+        margin: 0 0 8px;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: bold;
+      }
+
+      .detalle-largo pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 14px;
+        color: #1f2937;
+      }
+
+      @media (max-width: 900px) {
+        header {
+          padding: 18px 20px;
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .usuario-navbar {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .usuario-info {
+          text-align: left;
+        }
+
+        .container {
+          padding: 20px;
+        }
+
+        .cards {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .detalle-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+
+        .filters input,
+        .filters select {
+          width: 100%;
+          min-width: auto;
+        }
+
+        .usuario-navbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <div>
+        <h1>Panel Administrativo TechNova</h1>
+        <span>Gestión interna de tickets de soporte</span>
+      </div>
+
+      <nav class="usuario-navbar">
+        <div class="usuario-info">
+          <div class="avatar" id="avatar-empleado">TN</div>
+
+          <div>
+            <strong id="nombre-empleado">Empleado</strong>
+            <span id="datos-empleado">Cargando sesión...</span>
+          </div>
+        </div>
+
+        <a href="/logout" class="btn-logout">Cerrar sesión</a>
+      </nav>
+    </header>
+
+    <main class="container">
+      <section class="top-actions">
+        <div class="filters">
+          <input
+            type="text"
+            id="buscar"
+            placeholder="Buscar por código, IP, empresa o solicitante"
+          />
+
+          <select id="filtro-estado">
+            <option value="">Todos los estados</option>
+            <option value="diagnosticado">Diagnosticado</option>
+            <option value="en_revision">En revisión</option>
+            <option value="abierto">Abierto</option>
+            <option value="asignado">Asignado</option>
+            <option value="cerrado">Cerrado</option>
+          </select>
+        </div>
+
+        <a href="/">Volver al portal público</a>
+      </section>
+
+      <section class="cards">
+        <div class="card">
+          <p>Total tickets</p>
+          <h2 id="total-tickets">0</h2>
+        </div>
+
+        <div class="card">
+          <p>Diagnosticados</p>
+          <h2 id="total-diagnosticados">0</h2>
+        </div>
+
+        <div class="card">
+          <p>En revisión</p>
+          <h2 id="total-revision">0</h2>
+        </div>
+
+        <div class="card">
+          <p>Alertas altas</p>
+          <h2 id="total-altas">0</h2>
+        </div>
+      </section>
+
+      <section class="table-card">
+        <div class="table-header">
+          <h2>Tickets registrados</h2>
+        </div>
+
+        <div id="mensaje-error"></div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Solicitante</th>
+                <th>Empresa</th>
+                <th>IP</th>
+                <th>Estado</th>
+                <th>Equipo</th>
+                <th>Área</th>
+                <th>Código diagnóstico</th>
+                <th>Alerta</th>
+                <th>Latencia</th>
+                <th>Creado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody id="tabla-tickets">
+              <tr>
+                <td colspan="12" class="empty">Cargando tickets...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal oculto" id="modal-ticket">
+      <div class="modal-contenido">
+        <div class="modal-header">
+          <h2 id="modal-codigo">Detalle del ticket</h2>
+          <button class="cerrar-modal" id="cerrar-modal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="detalle-grid">
+            <div class="detalle-item">
+              <p>Solicitante</p>
+              <span id="modal-solicitante">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Contacto</p>
+              <span id="modal-contacto">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Empresa</p>
+              <span id="modal-empresa">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>IP reportada</p>
+              <span id="modal-ip">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Estado del ticket</p>
+              <span id="modal-estado">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Fecha de creación</p>
+              <span id="modal-creado">-</span>
+            </div>
+          </div>
+
+          <div class="detalle-largo">
+            <p>Descripción del problema</p>
+            <pre id="modal-descripcion">-</pre>
+          </div>
+
+          <div class="detalle-grid" style="margin-top: 16px">
+            <div class="detalle-item">
+              <p>Equipo</p>
+              <span id="modal-equipo">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Área</p>
+              <span id="modal-area">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Estado del equipo</p>
+              <span id="modal-estado-equipo">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Latencia</p>
+              <span id="modal-latencia">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Código diagnóstico</p>
+              <span id="modal-codigo-diagnostico">-</span>
+            </div>
+
+            <div class="detalle-item">
+              <p>Nivel de alerta</p>
+              <span id="modal-alerta">-</span>
+            </div>
+          </div>
+
+          <div class="detalle-largo">
+            <p>Mensaje diagnóstico</p>
+            <pre id="modal-mensaje">-</pre>
+          </div>
+
+          <div class="detalle-largo">
+            <p>Recomendación</p>
+            <pre id="modal-recomendacion">-</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let ticketsOriginales = [];
+      let ticketsMostrados = [];
+
+      async function cargarEmpleadoActual() {
+        try {
+          const respuesta = await fetch("/empleado-actual");
+
+          if (!respuesta.ok) {
+            mostrarSesionNoDisponible();
+            return;
+          }
+
+          const data = await respuesta.json();
+
+          if (data.status !== "ok") {
+            mostrarSesionNoDisponible();
+            return;
+          }
+
+          const empleado = data.empleado;
+          const nombreCompleto = `${empleado.nombre} ${empleado.apellido}`;
+
+          document.getElementById("nombre-empleado").textContent =
+            nombreCompleto;
+
+          document.getElementById("datos-empleado").textContent =
+            `${empleado.tipo_empleado} | ${empleado.usuario} | ${empleado.correo}`;
+
+          document.getElementById("avatar-empleado").textContent =
+            obtenerIniciales(empleado.nombre, empleado.apellido);
+        } catch (error) {
+          mostrarSesionNoDisponible();
+        }
+      }
+
+      function mostrarSesionNoDisponible() {
+        document.getElementById("nombre-empleado").textContent = "Empleado";
+        document.getElementById("datos-empleado").textContent =
+          "Sesión no cargada";
+        document.getElementById("avatar-empleado").textContent = "TN";
+      }
+
+      function obtenerIniciales(nombre, apellido) {
+        const inicialNombre = nombre ? nombre.charAt(0).toUpperCase() : "";
+        const inicialApellido = apellido
+          ? apellido.charAt(0).toUpperCase()
+          : "";
+
+        return `${inicialNombre}${inicialApellido}` || "TN";
+      }
+
+      async function cargarTickets() {
+        const tabla = document.getElementById("tabla-tickets");
+        const mensajeError = document.getElementById("mensaje-error");
+
+        try {
+          const respuesta = await fetch("/tickets");
+          const data = await respuesta.json();
+
+          if (data.status !== "ok") {
+            mensajeError.innerHTML = `
+              <div class="error">No se pudieron cargar los tickets.</div>
+            `;
+
+            tabla.innerHTML = `
+              <tr>
+                <td colspan="12" class="empty">Sin datos disponibles.</td>
+              </tr>
+            `;
+
+            return;
+          }
+
+          ticketsOriginales = data.tickets;
+          actualizarResumen(ticketsOriginales);
+          pintarTickets(ticketsOriginales);
+        } catch (error) {
+          mensajeError.innerHTML = `
+            <div class="error">No se pudo conectar con el backend.</div>
+          `;
+
+          tabla.innerHTML = `
+            <tr>
+              <td colspan="12" class="empty">Error de conexión.</td>
+            </tr>
+          `;
+        }
+      }
+
+      function pintarTickets(tickets) {
+        const tabla = document.getElementById("tabla-tickets");
+        ticketsMostrados = tickets;
+
+        if (tickets.length === 0) {
+          tabla.innerHTML = `
+            <tr>
+              <td colspan="12" class="empty">No hay tickets para mostrar.</td>
+            </tr>
+          `;
+
+          return;
+        }
+
+        tabla.innerHTML = "";
+
+        tickets.forEach((ticket, index) => {
+          const fila = document.createElement("tr");
+
+          fila.innerHTML = `
+            <td>${limpiar(ticket.codigo_ticket)}</td>
+
+            <td>
+              <strong>${limpiar(ticket.nombre_solicitante)}</strong><br>
+              <small>${limpiar(ticket.correo_solicitante)}</small>
+            </td>
+
+            <td>${limpiar(ticket.empresa_solicitante)}</td>
+            <td>${limpiar(ticket.ip_reportada)}</td>
+
+            <td>
+              <span class="badge ${claseEstado(ticket.estado)}">
+                ${limpiar(ticket.estado)}
+              </span>
+            </td>
+
+            <td>${limpiar(ticket.nombre_equipo || "No identificado")}</td>
+            <td>${limpiar(ticket.area_equipo || "-")}</td>
+            <td>${limpiar(ticket.codigo_diagnostico)}</td>
+
+            <td class="${claseAlerta(ticket.nivel_alerta)}">
+              ${limpiar(ticket.nivel_alerta || "-")}
+            </td>
+
+            <td>${ticket.latencia_ms ?? "-"}</td>
+            <td>${formatearFecha(ticket.creado_en)}</td>
+
+            <td>
+              <button class="btn-ver" data-index="${index}">
+                Ver detalle
+              </button>
+            </td>
+          `;
+
+          tabla.appendChild(fila);
+        });
+
+        document.querySelectorAll(".btn-ver").forEach((boton) => {
+          boton.addEventListener("click", () => {
+            const index = boton.getAttribute("data-index");
+            abrirModalTicket(ticketsMostrados[index]);
+          });
+        });
+      }
+
+      function actualizarResumen(tickets) {
+        document.getElementById("total-tickets").textContent = tickets.length;
+
+        document.getElementById("total-diagnosticados").textContent =
+          tickets.filter((t) => t.estado === "diagnosticado").length;
+
+        document.getElementById("total-revision").textContent = tickets.filter(
+          (t) => t.estado === "en_revision",
+        ).length;
+
+        document.getElementById("total-altas").textContent = tickets.filter(
+          (t) => t.nivel_alerta === "alta" || t.nivel_alerta === "critica",
+        ).length;
+      }
+
+      function aplicarFiltros() {
+        const texto = document.getElementById("buscar").value.toLowerCase();
+        const estado = document.getElementById("filtro-estado").value;
+
+        const filtrados = ticketsOriginales.filter((ticket) => {
+          const coincideTexto =
+            String(ticket.codigo_ticket || "")
+              .toLowerCase()
+              .includes(texto) ||
+            String(ticket.ip_reportada || "")
+              .toLowerCase()
+              .includes(texto) ||
+            String(ticket.empresa_solicitante || "")
+              .toLowerCase()
+              .includes(texto) ||
+            String(ticket.nombre_solicitante || "")
+              .toLowerCase()
+              .includes(texto);
+
+          const coincideEstado = estado === "" || ticket.estado === estado;
+
+          return coincideTexto && coincideEstado;
+        });
+
+        pintarTickets(filtrados);
+      }
+
+      function abrirModalTicket(ticket) {
+        document.getElementById("modal-codigo").textContent =
+          ticket.codigo_ticket || "Detalle del ticket";
+
+        document.getElementById("modal-solicitante").textContent =
+          ticket.nombre_solicitante || "-";
+
+        document.getElementById("modal-contacto").textContent =
+          `${ticket.correo_solicitante || "-"} | ${ticket.telefono_solicitante || "-"}`;
+
+        document.getElementById("modal-empresa").textContent =
+          ticket.empresa_solicitante || "-";
+
+        document.getElementById("modal-ip").textContent =
+          ticket.ip_reportada || "-";
+
+        document.getElementById("modal-estado").textContent =
+          ticket.estado || "-";
+
+        document.getElementById("modal-creado").textContent = formatearFecha(
+          ticket.creado_en,
+        );
+
+        document.getElementById("modal-descripcion").textContent =
+          ticket.descripcion_problema || "-";
+
+        document.getElementById("modal-equipo").textContent =
+          ticket.nombre_equipo || "No identificado";
+
+        document.getElementById("modal-area").textContent =
+          ticket.area_equipo || "-";
+
+        document.getElementById("modal-estado-equipo").textContent =
+          ticket.estado_equipo || "-";
+
+        document.getElementById("modal-latencia").textContent =
+          ticket.latencia_ms !== null && ticket.latencia_ms !== undefined
+            ? `${ticket.latencia_ms} ms`
+            : "-";
+
+        document.getElementById("modal-codigo-diagnostico").textContent =
+          ticket.codigo_diagnostico || "-";
+
+        document.getElementById("modal-alerta").textContent =
+          ticket.nivel_alerta || "-";
+
+        document.getElementById("modal-mensaje").textContent =
+          ticket.mensaje_diagnostico || "-";
+
+        document.getElementById("modal-recomendacion").textContent =
+          ticket.recomendacion || "-";
+
+        document.getElementById("modal-ticket").classList.remove("oculto");
+      }
+
+      function cerrarModal() {
+        document.getElementById("modal-ticket").classList.add("oculto");
+      }
+
+      function claseEstado(estado) {
+        if (estado === "diagnosticado") return "badge-diagnosticado";
+        if (estado === "en_revision") return "badge-revision";
+        if (estado === "cerrado") return "badge-cerrado";
+        return "badge-abierto";
+      }
+
+      function claseAlerta(alerta) {
+        if (alerta === "baja") return "alerta-baja";
+        if (alerta === "media") return "alerta-media";
+        if (alerta === "alta") return "alerta-alta";
+        if (alerta === "critica") return "alerta-critica";
+        return "";
+      }
+
+      function formatearFecha(fecha) {
+        if (!fecha) return "-";
+
+        const date = new Date(fecha);
+
+        if (isNaN(date.getTime())) {
+          return fecha;
+        }
+
+        return date.toLocaleString("es-VE");
+      }
+
+      function limpiar(valor) {
+        if (valor === null || valor === undefined) return "";
+
+        return String(valor)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      document
+        .getElementById("buscar")
+        .addEventListener("input", aplicarFiltros);
+
+      document
+        .getElementById("filtro-estado")
+        .addEventListener("change", aplicarFiltros);
+
+      document
+        .getElementById("cerrar-modal")
+        .addEventListener("click", cerrarModal);
+
+      document
+        .getElementById("modal-ticket")
+        .addEventListener("click", function (event) {
+          if (event.target.id === "modal-ticket") {
+            cerrarModal();
+          }
+        });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          cerrarModal();
+        }
+      });
+
+      cargarEmpleadoActual();
+      cargarTickets();
+    </script>
+  </body>
+</html>
