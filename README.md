@@ -1,36 +1,131 @@
-## 🛠️ Instalación y Dependencias del Proyecto
+# TechNova IT Services — Versión Asegurada
 
-Este apartado detalla el software, las herramientas y las librerías necesarias para construir, ejecutar y auditar el portal "TechNova". El entorno fue diseñado estratégicamente para permitir la creación manual de vulnerabilidades, cumpliendo con la restricción de no utilizar herramientas que automaticen la seguridad.
+Rama `version-asegurada` del proyecto de Ciberseguridad NRC 26999.
+Contramedidas para **API10:2023 (Consumo No Seguro de APIs)** y
+**A04:2025 (Fallas Criptográficas)**.
 
-### 1. Infraestructura de Virtualización (Laboratorio)
-Para llevar a cabo la simulación de ataque y defensa en un entorno controlado y seguro, el proyecto depende de:
-* **VirtualBox:** Hipervisor utilizado para el despliegue y gestión de las máquinas virtuales.
-* **Ubuntu Desktop 22.04 LTS (Blue Team):** Actuará como el servidor "Víctima" donde se desplegará el sistema en su fase final.
-* **Kali Linux (Red Team):** Máquina preconfigurada con herramientas de seguridad ofensiva, utilizada para ejecutar los exploits, interceptar tráfico y realizar el criptoanálisis.
+> El código de la versión vulnerable (con los comentarios explicando cada
+> falla) vive en la rama `version-vulnerable` de este mismo repositorio.
 
-### 2. Entorno de Desarrollo Local
-Herramientas instaladas en el equipo anfitrión para el desarrollo y prueba del código:
-* **Visual Studio Code:** Editor de código fuente principal.
-* **Python (v3.12+):** Lenguaje de programación core del backend. *(Nota: Es imperativo asegurar que el ejecutable esté agregado al `PATH` del sistema operativo durante su instalación).*
-* **XAMPP:** Entorno que provee el motor de base de datos **MariaDB/MySQL**, necesario para almacenar la tabla de usuarios y simular el almacenamiento inseguro de credenciales.
+## Stack tecnológico real
 
-### 3. Dependencias del Código (Librerías)
-Dado que está prohibido el uso de frameworks robustos que mitiguen ataques por defecto, el sistema se construyó con las siguientes dependencias mínimas:
-* **Flask (`flask`):** Micro-framework web para Python. Se seleccionó específicamente porque facilita el enrutamiento web pero **no incluye** mecanismos de seguridad nativos (como sanitización automática de inputs o bloqueo de inyecciones), lo que permite materializar manualmente el **Consumo Inseguro de APIs (Riesgo ID-1)**.
-* **Hashlib (`hashlib`):** Librería nativa de Python (no requiere instalación vía `pip`). Se emplea para aplicar de forma deliberada el algoritmo **MD5** sin *salting* a las contraseñas de los usuarios, introduciendo la **Falla Criptográfica (Riesgo ID-2)** requerida por la rúbrica.
+- **Backend:** Python 3 puro, usando `http.server` (sin frameworks) tanto
+  para TechNova como para DiagNet.
+- **Base de datos:** PostgreSQL (via `psycopg2`).
+- **Frontend:** HTML/CSS/JS nativo (sin frameworks).
+- **Cifrado de contraseñas:** `bcrypt` (factor de costo 12).
+- **Transporte:** HTTPS/TLS con certificados autofirmados del laboratorio.
 
-### 4. Comandos de Instalación
-Para replicar el entorno de ejecución en una terminal local, se deben seguir estos pasos:
+## Estructura del repositorio
+
+```
+ProyectoCiber/
+├── certs/                     # Certificados TLS autofirmados (laboratorio)
+│   └── generar_certs.sh
+├── database/
+│   ├── create.sql
+│   └── insert.sql             # Usuarios de demo con hash bcrypt
+├── diagnet_api/
+│   ├── db.py
+│   └── servidor_api.py        # API externa DiagNet (HTTPS)
+├── technova_app/
+│   ├── backend/
+│   │   ├── app.py             # Backend TechNova (HTTPS + validaciones)
+│   │   ├── db.py
+│   │   └── generar_hash.py    # Utilidad para generar hashes bcrypt
+│   └── frontend/
+├── requirements.txt
+└── .env.example
+```
+
+## Contramedidas aplicadas
+
+### API10 — Consumo No Seguro de APIs
+
+| Falla en la versión vulnerable | Contramedida en esta versión |
+|---|---|
+| El backend confiaba ciegamente en el JSON de DiagNet | `validar_respuesta_diagnet()` valida esquema completo (claves + tipos) antes de usar el dato |
+| `codigo_diagnostico` se concatenaba directo en el SQL | Se usa `WHERE codigo = %s` (consulta parametrizada) |
+| Sin lista blanca de valores permitidos | `CODIGOS_DIAGNOSTICO_VALIDOS` rechaza cualquier valor fuera de los 5 códigos reales del catálogo |
+| Canal TechNova↔DiagNet en HTTP plano | Ambos servicios corren sobre HTTPS |
+| No se verificaba la identidad de DiagNet | TechNova valida el certificado de DiagNet (`certificate pinning` contra `certs/diagnet.crt`); un servidor suplantado sin la clave privada real es rechazado por el handshake TLS |
+
+### A04 — Fallas Criptográficas
+
+| Falla en la versión vulnerable | Contramedida en esta versión |
+|---|---|
+| Contraseñas con `MD5()` sin salt | Hashes `bcrypt` (salt individual embebido, factor de costo 12) |
+| Comparación de hash dentro del SQL (`password_hash = MD5(%s)`) | Verificación en Python con `bcrypt.checkpw()` |
+| Login por HTTP plano | Formulario y API sirven por HTTPS |
+| Mensajes distintos para "usuario no existe" vs "contraseña incorrecta" (permite enumerar usuarios) | Mensaje genérico único: "Usuario o contraseña incorrectos" |
+| Errores SQL/excepciones expuestos al cliente (`"detalle": str(error)`) | Los detalles se registran solo en `technova_seguro.log`; el cliente recibe un mensaje genérico |
+
+## Cómo desplegar y probar
+
+### 1. Generar los certificados TLS del laboratorio (una sola vez)
 
 ```bash
-# 1. Clonar el repositorio en el equipo local
-git clone [https://github.com/mendozita01/ProyectoCiber.git](https://github.com/mendozita01/ProyectoCiber.git)
+bash certs/generar_certs.sh
+```
 
-# 2. Acceder al directorio del proyecto vulnerable
-cd ProyectoCiber/version-vulnerable
+### 2. Preparar la base de datos
 
-# 3. Instalar la dependencia web (Flask) a través del gestor de paquetes de Python
-python -m pip install flask
+```bash
+createdb technova   # o el nombre que definas en .env
+psql -d technova -f database/create.sql
+psql -d technova -f database/insert.sql
+cp .env.example .env   # y completar credenciales de PostgreSQL
+```
 
-# Ejecutar la aplicación web
-python app.py
+### 3. Instalar dependencias de Python
+
+```bash
+pip install -r requirements.txt --break-system-packages
+```
+
+### 4. Levantar los servicios (en terminales separadas)
+
+```bash
+# Terminal 1 — API DiagNet
+cd diagnet_api
+python3 servidor_api.py
+# -> https://localhost:8080
+
+# Terminal 2 — App TechNova
+cd technova_app/backend
+python3 app.py
+# -> https://localhost:3000
+```
+
+El navegador mostrará una advertencia de certificado no confiable (normal,
+es autofirmado y solo para el laboratorio): aceptar la excepción para
+continuar.
+
+### 5. Usuarios de demo (login en `/login.html`)
+
+| Usuario | Contraseña | Rol |
+|---|---|---|
+| `admin` | `Admin123` | admin |
+| `soporte1` | `Soporte123` | soporte |
+| `analista1` | `Analista123` | analista |
+
+## Prueba de cierre (validar que el ataque ya no funciona)
+
+Repetir desde Kali el mismo ataque documentado en la rama
+`version-vulnerable`:
+
+1. Intentar interceptar/alterar el JSON de DiagNet en tránsito (MITM/ARP
+   Spoofing): la conexión TLS entre TechNova y DiagNet debe romperse o
+   TechNova debe rechazar el certificado si no corresponde al de
+   `certs/diagnet.crt`.
+2. Enviar un `codigo_diagnostico` manipulado (por ejemplo los payloads de
+   `payloads.txt` de la rama vulnerable): `validar_respuesta_diagnet()`
+   debe rechazarlo antes de que llegue a la consulta SQL — no debe
+   aparecer ningún error de sintaxis SQL en la respuesta ni en pantalla.
+3. Intentar extraer y crackear `password_hash` de la tabla `empleados`:
+   aunque se obtenga la base de datos, los hashes son `bcrypt` con salt
+   individual, por lo que un ataque de diccionario/Rainbow Table sobre
+   ellos deja de ser viable en un tiempo razonable.
+
+Capturar evidencia (pantallazos) de cada paso fallando como cierre del
+proyecto.
