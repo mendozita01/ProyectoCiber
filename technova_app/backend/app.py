@@ -34,6 +34,15 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         if self.path == "/login":
             self.login()
             return
+            
+        # NUEVAS RUTAS PARA LA GESTIÓN DE TICKETS
+        if self.path == "/cambiar_estado":
+            self.cambiar_estado()
+            return
+            
+        if self.path == "/asignar_ticket":
+            self.asignar_ticket()
+            return
 
         self.responder_html("<h1>Ruta no encontrada</h1>", status=404)
 
@@ -50,7 +59,8 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             self.logout()
             return
 
-        if self.path == "/admin.html":
+        # LA CORRECCIÓN ESTÁ AQUÍ
+        if self.path.startswith("/admin.html"):
             empleado = self.obtener_empleado_sesion()
 
             if empleado is None:
@@ -72,7 +82,7 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             # Debug: Imprimir en la consola de Python para ver qué llega
             print("Datos recibidos en backend:", params)
 
-            # Acceso directo al diccionario (sin usar [0] porque ya no es una lista)
+            # Acceso directo al diccionario
             ip_reportada = params.get("ip_reportada", "").strip()
 
             if not ip_reportada:
@@ -148,7 +158,6 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         Consulta DiagNet.
         Ejemplo: http://localhost:8080/diagnostico?ip=192.168.1.10
         """
-
         ip_codificada = quote(ip_reportada)
         url_diagnet = f"http://localhost:8080/diagnostico?ip={ip_codificada}"
 
@@ -161,11 +170,8 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
     def consultar_catalogo_vulnerable(self, cursor, codigo_diagnostico):
         """
         Busca el código diagnóstico en el catálogo interno.
-
-        Error intencional:
-        codigo_diagnostico viene desde DiagNet y se concatena en el SQL.
+        Error intencional: codigo_diagnostico se concatena directamente.
         """
-
         consulta = f"""
             SELECT
                 descripcion,
@@ -224,7 +230,6 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         """
         Guarda el ticket con los datos recibidos e interpretados.
         """
-
         cursor.execute(
             """
             INSERT INTO tickets (
@@ -318,12 +323,10 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             )
 
             filas = cursor.fetchall()
-
             cursor.close()
             conexion.close()
 
             tickets = []
-
             for fila in filas:
                 tickets.append(
                     {
@@ -361,74 +364,136 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             )
 
     def login(self):
-        """
-        Login de empleados TechNova.
-        En esta rama vulnerable se compara la contraseña usando MD5.
-        """
-
         try:
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length).decode("utf-8")
-            params = parse_qs(post_data)
-
-            usuario = params.get("usuario", [""])[0].strip()
-            password = params.get("password", [""])[0].strip()
+            
+            params = json.loads(post_data)
+            usuario = params.get("usuario", "").strip()
+            password = params.get("password", "").strip()
 
             if not usuario or not password:
-                self.responder_html(
-                    "<h1>Error</h1><p>Debe ingresar usuario y contraseña.</p><a href='/login.html'>Volver</a>",
-                    status=400,
-                )
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "error", "message": "Datos Incompletos"}).encode("utf-8"))
                 return
 
             conexion = obtener_conexion()
             cursor = conexion.cursor()
 
-            cursor.execute(
-                """
-                SELECT id, nombre, apellido, usuario, tipo_empleado
-                FROM empleados
-                WHERE usuario = %s
-                  AND password_hash = MD5(%s)
-                  AND activo = TRUE;
-                """,
-                (usuario, password),
-            )
+            # PASO 1: Verificamos si el usuario existe
+            cursor.execute("SELECT id FROM empleados WHERE usuario = %s AND activo = TRUE", (usuario,))
+            usuario_existe = cursor.fetchone()
 
-            empleado = cursor.fetchone()
+            login_valido = None
+            
+            if not usuario_existe:
+                respuesta = {"status": "error", "message": "Usuario No Autorizado"}
+            else:
+                # PASO 2: Validamos la contraseña
+                cursor.execute("""
+                    SELECT id, nombre, tipo_empleado 
+                    FROM empleados 
+                    WHERE usuario = %s AND password_hash = MD5(%s) AND activo = TRUE
+                """, (usuario, password))
+                login_valido = cursor.fetchone()
+
+                if not login_valido:
+                    respuesta = {"status": "error", "message": "Contraseña Inválida"}
+                else:
+                    respuesta = {"status": "success"}
 
             cursor.close()
             conexion.close()
 
-            if empleado is None:
-                self.responder_html(
-                    "<h1>Acceso denegado</h1><p>Usuario o contraseña incorrectos.</p><a href='/login.html'>Volver</a>",
-                    status=401,
-                )
-                return
+            # PASO 3: ENVIAR RESPUESTA Y COOKIE
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            
+            # Si el login fue exitoso, configuramos la cookie
+            if login_valido:
+                empleado_id = login_valido[0]
+                self.send_header("Set-Cookie", f"empleado_id={empleado_id}; Path=/; HttpOnly")
 
-            empleado_id = empleado[0]
-
-            self.send_response(302)
-            self.send_header("Location", "/admin.html")
-            self.send_header("Set-Cookie", f"empleado_id={empleado_id}; Path=/")
             self.end_headers()
+            self.wfile.write(json.dumps(respuesta).encode("utf-8"))
 
-        except Exception as error:
-            self.responder_html(
-                f"""
-                <h1>Error en login</h1>
-                <p>{str(error)}</p>
-                <a href="/login.html">Volver</a>
-                """,
-                status=500,
-            )
+        except Exception as e:
+            print("Error en login:", e)
+            self.send_response(500)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "error", "message": "Servidor No Disponible. Intente más tarde."}).encode("utf-8"))
+
+    def cambiar_estado(self):
+        """
+        Cambia el estado de un ticket directamente desde el lapicito del modal.
+        """
+        try:
+            content_length = int(self.headers["Content-Length"])
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            params = json.loads(post_data)
+
+            codigo_ticket = params.get("ticket_id")
+            nuevo_estado = params.get("nuevo_estado")
+
+            if codigo_ticket and nuevo_estado:
+                conexion = obtener_conexion()
+                cursor = conexion.cursor()
+                cursor.execute(
+                    "UPDATE tickets SET estado = %s, actualizado_en = CURRENT_TIMESTAMP WHERE codigo_ticket = %s",
+                    (nuevo_estado, codigo_ticket)
+                )
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+
+            self.responder_json({"status": "ok"})
+        except Exception as e:
+            print("Error cambiando estado:", e)
+            self.responder_json({"status": "error"}, status=500)
+
+    def asignar_ticket(self):
+        """
+        Simula el envío de un correo y cambia el estado del ticket a 'asignado'.
+        """
+        try:
+            content_length = int(self.headers["Content-Length"])
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            params = json.loads(post_data)
+
+            codigo_ticket = params.get("ticket_id")
+            analista_correo = params.get("analista")
+            mensaje = params.get("mensaje")
+
+            # Simulamos que se envió el correo imprimiéndolo en consola
+            print(f"\n[+] SIMULACIÓN DE CORREO ENVIADO:")
+            print(f"    Para: {analista_correo}")
+            print(f"    Ticket: {codigo_ticket}")
+            print(f"    Instrucciones: {mensaje}\n")
+
+            if codigo_ticket:
+                conexion = obtener_conexion()
+                cursor = conexion.cursor()
+                # Lo pasamos automáticamente a estado 'asignado'
+                cursor.execute(
+                    "UPDATE tickets SET estado = 'asignado', actualizado_en = CURRENT_TIMESTAMP WHERE codigo_ticket = %s",
+                    (codigo_ticket,)
+                )
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+
+            self.responder_json({"status": "ok"})
+        except Exception as e:
+            print("Error asignando ticket:", e)
+            self.responder_json({"status": "error"}, status=500)
 
     def obtener_empleado_sesion(self):
         """
         Busca el empleado que inició sesión usando la cookie empleado_id.
         """
-
         cookie = self.headers.get("Cookie", "")
         empleado_id = None
 
@@ -457,7 +522,6 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             )
 
             empleado = cursor.fetchone()
-
             cursor.close()
             conexion.close()
 
@@ -480,14 +544,13 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         """
         Envía al panel los datos del empleado que inició sesión.
         """
-
         empleado = self.obtener_empleado_sesion()
 
         if empleado is None:
             self.responder_json(
                 {
                     "status": "error",
-                    "mensaje": "No hay empleado con sesión activa",
+                    "mensaje": "No Hay Empleado Con Sesión Activa",
                 },
                 status=401,
             )
@@ -502,17 +565,13 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         """
         Cierra la sesión del empleado.
         """
-
         self.send_response(302)
         self.send_header("Location", "/login.html")
         self.send_header("Set-Cookie", "empleado_id=; Path=/; Max-Age=0")
         self.end_headers()
 
-
 if __name__ == "__main__":
     servidor = HTTPServer(("localhost", 3000), TechNovaHandler)
-
     print("TechNova App vulnerable corriendo en http://localhost:3000 o http://127.0.0.1:3000")
     print("Debe estar activa la API DiagNet en http://localhost:8080")
-
     servidor.serve_forever()

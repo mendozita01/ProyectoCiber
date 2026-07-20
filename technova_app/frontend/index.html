@@ -6,7 +6,6 @@
     <title>TechNova | Portal de Soporte</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Conexión al CSS separado -->
     <link rel="stylesheet" href="index.css">
 </head>
 <body>
@@ -19,7 +18,7 @@
             <h1>Tech<span class="highlight">Nova</span></h1>
             <span class="slogan">Conectividad Inteligente.</span>
         </div>
-        <a href="login.html" class="login-link">
+        <a href="admin.html" class="login-link">
             <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i> Portal Admin
         </a>
     </header>
@@ -32,7 +31,6 @@
         </button>
     </main>
 
-    <!-- ESTADÍSTICAS E IMPACTO (SECCIÓN 2) -->
     <section class="impact-section">
         <div class="impact-container">
             <div class="impact-content">
@@ -68,7 +66,6 @@
         </div>
     </section>
 
-    <!-- CAPACIDADES (SECCIÓN 3 - DISEÑO DE LISTA EDITORIAL) -->
     <section class="features">
         <div class="section-title">
             <h3>Soluciones en Infraestructura TI</h3>
@@ -116,7 +113,6 @@
         </div>
     </section>
 
-    <!-- FOOTER CON COPYRIGHT -->
     <footer class="site-footer">
         <div class="footer-content">
             <div class="footer-brand">
@@ -134,7 +130,7 @@
         </div>
     </footer>
 
-    <!-- MODAL -->
+    <!-- MODAL TICKET -->
     <div id="modalOverlay" class="modal-overlay">
         <div class="modal-content">
             <div id="formView">
@@ -146,26 +142,26 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="nombre">Nombre del Solicitante *</label>
-                            <input type="text" id="nombre" name="nombre_solicitante" required placeholder="Ej: Carlos Pérez">
+                            <input type="text" id="nombre" name="nombre_solicitante">
                         </div>
                         <div class="form-group">
                             <label for="empresa">Empresa / Departamento</label>
-                            <input type="text" id="empresa" name="empresa_solicitante" placeholder="Ej: Recursos Humanos">
+                            <input type="text" id="empresa" name="empresa_solicitante">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="correo">Correo de Contacto *</label>
-                            <input type="email" id="correo" name="correo_solicitante" required placeholder="carlos@empresa.com">
+                            <input type="email" id="correo" name="correo_solicitante">
                         </div>
                         <div class="form-group">
                             <label for="telefono">Teléfono</label>
-                            <input type="text" id="telefono" name="telefono_solicitante" placeholder="+58 400 000000">
+                            <input type="text" id="telefono" name="telefono_solicitante" placeholder="+58 000-000000">
                         </div>
                     </div>
                     <div class="form-group ip-field">
                         <label for="ip">Dirección IP Afectada *</label>
-                        <input type="text" id="ip" name="ip_reportada" required placeholder="192.168.1.10">
+                        <input type="text" id="ip" name="ip_reportada">
                     </div>
                     <div class="form-group">
                         <label for="descripcion">Descripción del Problema *</label>
@@ -188,7 +184,6 @@
         </div>
     </div>
 
-    <!-- Conexión al JS separado -->
     <script src="index.js"></script>
 </body>
 </html>
