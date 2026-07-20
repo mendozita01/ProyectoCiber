@@ -19,18 +19,53 @@ Dado que está prohibido el uso de frameworks robustos que mitiguen ataques por 
 * **Flask (`flask`):** Micro-framework web para Python. Se seleccionó específicamente porque facilita el enrutamiento web pero **no incluye** mecanismos de seguridad nativos (como sanitización automática de inputs o bloqueo de inyecciones), lo que permite materializar manualmente el **Consumo Inseguro de APIs (Riesgo ID-1)**.
 * **Hashlib (`hashlib`):** Librería nativa de Python (no requiere instalación vía `pip`). Se emplea para aplicar de forma deliberada el algoritmo **MD5** sin *salting* a las contraseñas de los usuarios, introduciendo la **Falla Criptográfica (Riesgo ID-2)** requerida por la rúbrica.
 
-### 4. Comandos de Instalación
+### 4. Maquinas virtuales configuradas 
+https://drive.google.com/file/d/1wd0_FrPQRb5Lxonssh68AB1sdkgYFjne/view?usp=sharing   
+
+### 5. Comandos de Instalación
 Para replicar el entorno de ejecución en una terminal local, se deben seguir estos pasos:
+
 
 ```bash
 # 1. Clonar el repositorio en el equipo local
 git clone [https://github.com/mendozita01/ProyectoCiber.git](https://github.com/mendozita01/ProyectoCiber.git)
 
-# 2. Acceder al directorio del proyecto vulnerable
-cd ProyectoCiber/version-vulnerable
+# 2. Acceder al directorio del proyecto clonado
+cd ProyectoCiber
 
-# 3. Instalar la dependencia web (Flask) a través del gestor de paquetes de Python
-python -m pip install flask
+# 3. Crear en postgres una base de datos de nombre 
+technova
 
-# Ejecutar la aplicación web
-python app.py
+# 4. Dentro de pgAdmin ejecutar los scripts 
+create.sql 
+insert.sql  
+
+# 5. Crear el archivo .env en la raíz del proyecto, usando como base :
+.env.example.
+
+# 6. Crear el entorno virtual de Python
+python -m venv .venv
+
+# 7. Activar el entorno virtual
+# En Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# En Linux (Ubuntu Desktop - Blue Team):
+# source .venv/bin/activate
+
+# 8. Instalar las dependencias 
+# Si el proyecto cuenta con un archivo requirements.txt:
+python -m pip install -r requirements.txt
+# En caso de instalarlas manualmente:
+# python -m pip install flask
+
+# 9. Abrir una terminal para DiagNet:
+cd diagnet_api python servidor_api.py
+
+# 10. Abrir otra terminal para TechNova
+cd technova_app/backend python app.py
+
+# 11. Abrir en el navegador
+http://localhost:3000
+
+
+
