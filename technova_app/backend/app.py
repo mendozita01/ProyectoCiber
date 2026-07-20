@@ -104,6 +104,18 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             datos_api = self.consultar_diagnet(ip_reportada)
 
             inventario_encontrado = datos_api.get("inventario_encontrado")
+            
+            # NUEVA VALIDACIÓN: Rechazar si la IP no está en inventario
+            if not inventario_encontrado:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "status": "error",
+                    "message": f"Operación denegada: La IP {ip_reportada} no se encuentra registrada en el inventario corporativo."
+                }).encode("utf-8"))
+                return
+
             nombre_equipo = datos_api.get("nombre_equipo", "")
             area_equipo = datos_api.get("area", "")
             estado_equipo = datos_api.get("estado_equipo", "")

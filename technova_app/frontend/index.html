@@ -172,6 +172,8 @@
                         <label for="descripcion">Descripción del Problema *</label>
                         <textarea id="descripcion" name="descripcion_problema" rows="3" required placeholder="Detalle la latencia o el comportamiento inusual..."></textarea>
                     </div>
+                    <div id="formErrorMsg" style="display: none; color: var(--alert); background: rgba(233, 30, 99, 0.1); padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: 600; font-size: 0.9rem; text-align: center; border: 1px solid rgba(233, 30, 99, 0.3);"></div>
+
                     <div class="form-actions">
                         <button type="button" class="btn-cancel" id="btnCancelarForm">Cancelar</button>
                         <button type="submit" class="btn-submit">Enviar a Diagnóstico</button>
@@ -202,7 +204,7 @@
             </div>
             
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <input type="text" id="ticketSearchId" placeholder="Ingrese su código de ticket" style="flex: 1; padding: 12px 15px; border-radius: 8px; border: 1px solid #ddd; font-family: var(--font-mono); font-weight: bold; font-size: 1rem; outline: none;">
+                <input type="text" id="ticketSearchId" placeholder="Ingrese su código de ticket (TK-000000)" style="flex: 1; padding: 12px 15px; border-radius: 8px; border: 1px solid #ddd; font-family: var(--font-mono); font-weight: bold; font-size: 1rem; outline: none;">
                 <button class="btn-primary" id="btnBuscarTicket" style="border: none; background: var(--primary); color: white; padding: 0 25px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;">
                     Buscar
                 </button>

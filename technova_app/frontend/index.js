@@ -89,8 +89,15 @@ const formView = document.getElementById('formView');
 const successView = document.getElementById('successView');
 
 btnAbrirModal.addEventListener('click', () => {
-    formView.style.display = 'block'; successView.style.display = 'none';
-    ticketForm.reset(); modalOverlay.classList.add('active');
+    formView.style.display = 'block'; 
+    successView.style.display = 'none';
+    
+    // Limpiar el mensaje de error si se vuelve a abrir el modal
+    const errorMsgDiv = document.getElementById('formErrorMsg');
+    if (errorMsgDiv) errorMsgDiv.style.display = 'none';
+
+    ticketForm.reset(); 
+    modalOverlay.classList.add('active');
 });
 
 const cerrarModal = () => { modalOverlay.classList.remove('active'); };
@@ -104,19 +111,31 @@ ticketForm.addEventListener('submit', function(e) {
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
     
+    const btnSubmit = this.querySelector('.btn-submit');
+    const originalText = btnSubmit.innerHTML;
+    btnSubmit.innerHTML = 'Verificando IP...';
+    btnSubmit.disabled = true;
+
+    const errorMsgDiv = document.getElementById('formErrorMsg');
+    errorMsgDiv.style.display = 'none';
+    errorMsgDiv.textContent = '';
+    
     fetch('/crear_ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     })
-    .then(response => {
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        return response.json(); 
+    .then(async response => {
+        const resData = await response.json();
+        // Si el código HTTP no es 200 OK, forzamos el error con el mensaje de Python
+        if (!response.ok) {
+            throw new Error(resData.message || `Error HTTP: ${response.status}`);
+        }
+        return resData; 
     })
     .then(data => {
         console.log("[+] Respuesta del Servidor:", data); 
 
-        // Como tu Python devuelve {"status": "success", "ticket": "TK-00000X"}
         const idDisplay = document.getElementById('ticketIdResult');
         if (data.ticket) {
             idDisplay.textContent = data.ticket; 
@@ -126,11 +145,19 @@ ticketForm.addEventListener('submit', function(e) {
 
         formView.style.display = 'none'; 
         successView.style.display = 'block'; 
+        
+        btnSubmit.innerHTML = originalText;
+        btnSubmit.disabled = false;
     })
     .catch(error => { 
         console.error("[-] Error en la petición:", error);
-        formView.style.display = 'none'; 
-        successView.style.display = 'block'; 
+        
+        // Mostrar el error en la interfaz sin cerrar el modal
+        errorMsgDiv.textContent = error.message;
+        errorMsgDiv.style.display = 'block';
+        
+        btnSubmit.innerHTML = originalText;
+        btnSubmit.disabled = false;
     });
 });
 
