@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechNova | Panel Administrativo</title>
+    
+    <!-- Fuentes e Íconos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Calendario CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="logo-container">
+            <img src="imagenes/logo.png" alt="TechNova Logo" class="logo-img">
+            <div class="titles">
+                <h1>Tech<span>Nova</span></h1>
+            </div>
+            <div class="titles">
+                <span class="slogan">Panel de Soporte</span>
+            </div>
+        </div>
+
+        <div class="user-dropdown-container" id="dropdownContainer">
+            <button class="user-btn" id="userBtn">
+                <div class="avatar" id="avatar-empleado">TN</div>
+                <div class="user-text">
+                    <strong id="nombre-empleado">Cargando...</strong>
+                    <i data-lucide="chevron-down" class="dropdown-icon"></i>
+                </div>
+            </button>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <div class="dropdown-header">
+                    <span class="role-badge" id="rol-empleado">CARGANDO</span>
+                    <span class="email-text" id="email-empleado">verificando...</span>
+                </div>
+                <a href="/" class="dropdown-item"><i data-lucide="globe"></i> Portal Público</a>
+                <a href="#" id="btn-cerrar-sesion" class="dropdown-item logout"><i data-lucide="log-out"></i> Cerrar Sesión</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- FILTROS -->
+        <section class="controls-section">
+            <div class="filters">
+                <div class="search-wrapper">
+                    <i data-lucide="search" class="icon-left"></i>
+                    <input type="text" id="buscar" placeholder="Buscar ticket, IP o Solicitante..." autocomplete="off"/>
+                </div>
+
+                <div class="search-wrapper date-wrapper">
+                    <i data-lucide="calendar" class="icon-left"></i>
+                    <input type="text" id="filtro-fecha" placeholder="Seleccionar Fecha..." autocomplete="off"/>
+                </div>
+                
+                <div class="custom-dropdown" id="dropdown-estado" tabindex="0">
+                    <i data-lucide="filter" class="icon-left"></i>
+                    <span class="selected-text" id="text-estado">Todos los Estados</span>
+                    <i data-lucide="chevron-down" class="icon-right"></i>
+                    <div class="custom-dropdown-list">
+                        <div class="custom-option selected" data-value="">Todos los Estados</div>
+                        <div class="custom-option" data-value="diagnosticado">Diagnosticado</div>
+                        <div class="custom-option" data-value="en_revision">En Revisión</div>
+                        <div class="custom-option" data-value="abierto">Abierto</div>
+                        <div class="custom-option" data-value="asignado">Asignado</div>
+                        <div class="custom-option" data-value="cerrado">Cerrado</div>
+                    </div>
+                    <input type="hidden" id="filtro-estado" value="">
+                </div>
+
+                <div class="custom-dropdown" id="dropdown-alerta" tabindex="0">
+                    <i data-lucide="alert-triangle" class="icon-left"></i>
+                    <span class="selected-text" id="text-alerta">Cualquier Alerta</span>
+                    <i data-lucide="chevron-down" class="icon-right"></i>
+                    <div class="custom-dropdown-list">
+                        <div class="custom-option selected" data-value="">Cualquier Alerta</div>
+                        <div class="custom-option" data-value="baja">Alerta Baja</div>
+                        <div class="custom-option" data-value="media">Alerta Media</div>
+                        <div class="custom-option" data-value="alta">Alerta Alta</div>
+                        <div class="custom-option" data-value="critica">Alerta Crítica</div>
+                    </div>
+                    <input type="hidden" id="filtro-alerta" value="">
+                </div>
+
+                <button id="btn-limpiar" class="btn-limpiar">
+                    <i data-lucide="filter-x" style="width: 16px;"></i> Limpiar Filtros
+                </button>
+            </div>
+        </section>
+
+        <!-- MÉTRICAS -->
+        <section class="metrics-grid">
+            <div class="metric-card primary-card active" data-filter="total">
+                <div class="metric-info">
+                    <p>Total Incidentes</p>
+                    <h2 id="total-tickets">0</h2>
+                </div>
+                <div class="metric-icon"><i data-lucide="layers" style="width: 24px; height: 24px;"></i></div>
+            </div>
+            <div class="metric-card success-card" data-filter="diagnosticado">
+                <div class="metric-info">
+                    <p>Diagnosticados</p>
+                    <h2 id="total-diagnosticados">0</h2>
+                </div>
+                <div class="metric-icon"><i data-lucide="check-circle" style="width: 24px; height: 24px;"></i></div>
+            </div>
+            <div class="metric-card warning-card" data-filter="revision">
+                <div class="metric-info">
+                    <p>En Revisión</p>
+                    <h2 id="total-revision">0</h2>
+                </div>
+                <div class="metric-icon"><i data-lucide="clock" style="width: 24px; height: 24px;"></i></div>
+            </div>
+            <div class="metric-card alert-card" data-filter="critica">
+                <div class="metric-info">
+                    <p>Prioridad Crítica</p>
+                    <h2 id="total-altas">0</h2>
+                </div>
+                <div class="metric-icon"><i data-lucide="shield-alert" style="width: 24px; height: 24px;"></i></div>
+            </div>
+        </section>
+
+        <!-- TABLA -->
+        <section class="table-container">
+            <div class="table-header">
+                <h2><i data-lucide="server" style="color: var(--primary);"></i> Registro Operativo de Tickets</h2>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-sort="codigo_ticket">ID Ticket <span class="sort-icon">↕</span></th>
+                            <th data-sort="nombre_solicitante">Solicitante <span class="sort-icon">↕</span></th>
+                            <th data-sort="ip_reportada">Origen (IP) <span class="sort-icon">↕</span></th>
+                            <th data-sort="estado">Estado <span class="sort-icon">↕</span></th>
+                            <th data-sort="nombre_equipo">Equipo / Área <span class="sort-icon">↕</span></th>
+                            <th data-sort="codigo_diagnostico">Diagnóstico <span class="sort-icon">↕</span></th>
+                            <th data-sort="nivel_alerta">Severidad <span class="sort-icon">↕</span></th>
+                            <th data-sort="creado_en">Creación <span class="sort-icon">↕</span></th>
+                            <th>Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-tickets">
+                        <tr><td colspan="9" style="text-align: center; padding: 40px; color: #888;">Cargando telemetría...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL DE DETALLE DEL TICKET -->
+    <div class="modal oculto" id="modal-ticket">
+        <div class="modal-contenido">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="file-text" style="color: var(--primary);"></i>
+                    <h2 id="modal-codigo">TK-000000</h2>
+                    <span id="modal-estado-header" class="badge badge-abierto">Abierto</span>
+                    
+                    <!-- EDICIÓN ESTADO TICKET -->
+                    <button class="btn-editar-estado" id="btn-editar-estado" title="Cambiar Estado">
+                        <i data-lucide="edit-2" style="width: 16px;"></i>
+                    </button>
+                    <div class="estado-dropdown-menu" id="estado-dropdown">
+                        <div class="estado-option" data-estado="en_revision"><span class="badge badge-revision" style="width: 100%;">En Revisión</span></div>
+                        <div class="estado-option" data-estado="diagnosticado"><span class="badge badge-diagnosticado" style="width: 100%;">Diagnosticado</span></div>
+                        <div class="estado-option" data-estado="asignado"><span class="badge badge-asignado" style="width: 100%;">Asignado</span></div>
+                        <div class="estado-option" data-estado="cerrado"><span class="badge badge-cerrado" style="width: 100%;">Cerrado</span></div>
+                    </div>
+                </div>
+                <button class="cerrar-modal btn-close-main"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="detail-section">
+                    <h3><i data-lucide="user"></i> Información del Solicitante</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><p>Nombre Completo</p><span id="modal-solicitante">-</span></div>
+                        <div class="detail-item"><p>Organización / Empresa</p><span id="modal-empresa">-</span></div>
+                        <div class="detail-item"><p>Contacto (Email | Tel)</p><span id="modal-contacto">-</span></div>
+                        <div class="detail-item"><p>Fecha de Reporte</p><span id="modal-creado">-</span></div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3><i data-lucide="cpu"></i> Telemetría y Activos (DiagNet)</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><p>IP Reportada</p><span id="modal-ip" class="id-text">-</span></div>
+                        <div class="detail-item"><p>Identificador de Equipo</p><span id="modal-equipo">-</span></div>
+                        <div class="detail-item"><p>Segmento / Área</p><span id="modal-area">-</span></div>
+                        <div class="detail-item"><p>Estado de Conectividad</p><span id="modal-estado-equipo">-</span></div>
+                        <div class="detail-item"><p>Latencia de Respuesta</p><span id="modal-latencia">-</span></div>
+                        <div class="detail-item"><p>Código de Evento</p><span id="modal-codigo-diagnostico" class="diag-badge">-</span></div>
+                        <div class="detail-item"><p>Nivel de Alerta</p><span id="modal-alerta">-</span></div>
+                    </div>
+                </div>
+
+                <div class="detail-section" style="box-shadow: none; border: none; padding: 0; margin-bottom: 0;">
+                    <div class="detail-item" style="margin-bottom: 20px;">
+                        <p>Descripción Original del Usuario</p>
+                        <span id="modal-descripcion">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <p>Volcado de Análisis del Sistema (Log)</p>
+                        <div class="code-block" id="modal-mensaje">-</div>
+                    </div>
+                    <div class="detail-item" style="margin-top: 20px;">
+                        <p>Plan de Remediación Sugerido</p>
+                        <span id="modal-recomendacion" style="color: var(--primary); font-weight: 700;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-abrir-correo">
+                    <i data-lucide="send"></i> Asignar Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SECUNDARIO DE CORREO -->
+    <div class="modal oculto" id="modal-email" style="z-index: 1050;">
+        <div class="modal-contenido" style="max-width: 550px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="mail" style="color: var(--primary);"></i>
+                    <h2>Escalar Incidente</h2>
+                </div>
+                <button class="cerrar-modal" id="btn-cerrar-email"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 25px;">
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Redacta el mensaje para asignar o escalar este ticket a otro departamento o analista de seguridad.</p>
+                
+                <div class="email-form-group">
+                    <label>Para (Correo del Analista/Equipo):</label>
+                    <input type="email" id="email-para">
+                </div>
+                <div class="email-form-group">
+                    <label>Asunto:</label>
+                    <input type="text" id="email-asunto" placeholder="Escalamiento de Ticket TK-XXXXXX">
+                </div>
+                <div class="email-form-group">
+                    <label>Mensaje / Instrucciones:</label>
+                    <textarea id="email-mensaje"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end;">
+                <button class="btn-cancel" id="btn-cancelar-email">Cancelar</button>
+                <button class="btn-primary" id="btn-enviar-email" style="background: var(--success); border-color: var(--success);">
+                    <i data-lucide="check-circle"></i> Enviar Asignación
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. MODAL DE CORREO ENVIADO EXITOSAMENTE -->
+    <div class="modal oculto" id="modal-success-email" style="z-index: 1100;">
+        <div class="modal-contenido" style="max-width: 400px; padding: 40px 20px; text-align: center; position: relative;">
+            <button class="btn-x-minimalista" id="btn-cerrar-success">
+                <i data-lucide="x" style="width: 20px;"></i>
+            </button>
+            <div class="success-view" id="emailSuccessView">
+                <div class="success-icon-wrapper" id="emailSuccessIcon" style="margin: 0 auto;">
+                    <i data-lucide="mail"></i>
+                </div>
+                <h3 class="success-text">Asignación Enviada</h3>
+                <p class="success-subtext">El ticket ha sido escalado correctamente.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE ANIMACIÓN DE CIERRE DE SESIÓN -->
+    <div class="modal oculto" id="modal-logout" style="z-index: 2000;">
+        <div class="modal-contenido" style="max-width: 400px; padding: 40px 20px; text-align: center;">
+            <div class="success-view" id="logoutView">
+                <div class="success-icon-wrapper logout" id="logoutIcon" style="margin: 0 auto;">
+                    <i data-lucide="lock"></i>
+                </div>
+                <h3 class="success-text">Cerrando Sesión</h3>
+                <p class="success-subtext">Protegiendo el entorno de trabajo...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendario En Español -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+
+    <script src="admin.js"></script>
+</body>
+</html>
