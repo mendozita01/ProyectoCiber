@@ -122,7 +122,7 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             latencia_ms = datos_api.get("latencia_ms")
             codigo_diagnostico = datos_api.get("codigo_diagnostico", "ERROR_API")
 
-            estado_ticket = "diagnosticado" if inventario_encontrado else "en_revision"
+            estado_ticket = "diagnosticado" if codigo_diagnostico == "OK-200" else "en_revision"
 
             conexion = obtener_conexion()
             cursor = conexion.cursor()

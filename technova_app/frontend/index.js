@@ -175,10 +175,9 @@ const ticketErrorArea = document.getElementById('ticketErrorArea');
 
 function configEstado(estado) {
     if (estado === "diagnosticado") return { texto: 'Diagnosticado', clase: 'badge-diagnosticado' };
-    if (estado === "en_revision") return { texto: 'En Revisión', clase: 'badge-revision' };
-    if (estado === "cerrado") return { texto: 'Cerrado', clase: 'badge-cerrado' };
     if (estado === "asignado") return { texto: 'Asignado', clase: 'badge-asignado' };
-    return { texto: 'Abierto', clase: 'badge-abierto' };
+    if (estado === "cerrado") return { texto: 'Cerrado', clase: 'badge-cerrado' };
+    return { texto: 'En Revisión', clase: 'badge-revision' };
 }
 
 function configAlerta(alerta) {

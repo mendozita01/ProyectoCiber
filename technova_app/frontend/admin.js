@@ -369,10 +369,9 @@ document.getElementById("btn-cerrar-success").addEventListener("click", () => {
 
 function claseEstado(estado) {
     if (estado === "diagnosticado") return "badge-diagnosticado";
-    if (estado === "en_revision") return "badge-revision";
     if (estado === "cerrado") return "badge-cerrado";
     if (estado === "asignado") return "badge-asignado";
-    return "badge-abierto";
+    return "badge-revision";
 }
 function claseAlerta(alerta) {
     if (alerta === "baja") return "alerta-baja";
