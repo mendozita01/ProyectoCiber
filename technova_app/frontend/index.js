@@ -110,21 +110,122 @@ ticketForm.addEventListener('submit', function(e) {
         body: JSON.stringify(data)
     })
     .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         return response.json(); 
     })
     .then(data => {
         console.log("[+] Respuesta del Servidor:", data); 
+
+        // Como tu Python devuelve {"status": "success", "ticket": "TK-00000X"}
+        const idDisplay = document.getElementById('ticketIdResult');
+        if (data.ticket) {
+            idDisplay.textContent = data.ticket; 
+        } else {
+            idDisplay.textContent = "Registrado";
+        }
 
         formView.style.display = 'none'; 
         successView.style.display = 'block'; 
     })
     .catch(error => { 
         console.error("[-] Error en la petición:", error);
-        
         formView.style.display = 'none'; 
         successView.style.display = 'block'; 
+    });
+});
+
+// =========================================
+// Lógica del Modal de Consulta de Tickets (Diseño Visual)
+// =========================================
+const modalConsultaOverlay = document.getElementById('modalConsultaOverlay');
+const btnAbrirModalConsulta = document.getElementById('btnAbrirModalConsulta');
+const btnCerrarModalConsultaX = document.getElementById('btnCerrarModalConsultaX');
+const btnBuscarTicket = document.getElementById('btnBuscarTicket');
+const ticketSearchId = document.getElementById('ticketSearchId');
+const ticketResultArea = document.getElementById('ticketResultArea');
+const ticketErrorArea = document.getElementById('ticketErrorArea');
+
+
+function configEstado(estado) {
+    if (estado === "diagnosticado") return { texto: 'Diagnosticado', clase: 'badge-diagnosticado' };
+    if (estado === "en_revision") return { texto: 'En Revisión', clase: 'badge-revision' };
+    if (estado === "cerrado") return { texto: 'Cerrado', clase: 'badge-cerrado' };
+    if (estado === "asignado") return { texto: 'Asignado', clase: 'badge-asignado' };
+    return { texto: 'Abierto', clase: 'badge-abierto' };
+}
+
+function configAlerta(alerta) {
+    if (alerta === "baja") return "alerta-baja";
+    if (alerta === "media") return "alerta-media";
+    if (alerta === "alta") return "alerta-alta";
+    if (alerta === "critica") return "alerta-critica";
+    return "";
+}
+
+btnAbrirModalConsulta.addEventListener('click', () => {
+    modalConsultaOverlay.classList.add('active');
+    ticketSearchId.value = '';
+    ticketResultArea.style.display = 'none';
+    ticketErrorArea.style.display = 'none';
+});
+
+const cerrarModalConsulta = () => { modalConsultaOverlay.classList.remove('active'); };
+btnCerrarModalConsultaX.addEventListener('click', cerrarModalConsulta);
+modalConsultaOverlay.addEventListener('click', (e) => { 
+    if (e.target === modalConsultaOverlay) cerrarModalConsulta(); 
+});
+
+btnBuscarTicket.addEventListener('click', () => {
+    const id = ticketSearchId.value.trim().toUpperCase(); 
+    if(!id) return;
+    
+    btnBuscarTicket.textContent = "Buscando...";
+    ticketResultArea.style.display = 'none';
+    ticketErrorArea.style.display = 'none';
+    
+    fetch(`/consultar_ticket?ticket=${id}`)
+    .then(res => res.json())
+    .then(data => {
+        btnBuscarTicket.textContent = "Buscar";
+        
+        if (data.error) {
+            ticketErrorArea.textContent = data.error;
+            ticketErrorArea.style.display = 'block';
+            return;
+        }
+
+        // Poblar la interfaz con los datos
+        document.getElementById('res-codigo').textContent = data.codigo_ticket;
+        document.getElementById('res-ip').textContent = data.ip_reportada || "-";
+        
+        // Configurar estado
+        const estadoConfig = configEstado(data.estado);
+        const spanEstado = document.getElementById('res-estado');
+        spanEstado.className = `badge ${estadoConfig.clase}`;
+        spanEstado.textContent = estadoConfig.texto;
+
+        // Configurar Alerta
+        const spanAlerta = document.getElementById('res-alerta');
+        const alertaText = data.nivel_alerta ? data.nivel_alerta : "Desconocida";
+        spanAlerta.className = configAlerta(data.nivel_alerta);
+        spanAlerta.textContent = alertaText;
+
+        // Fechas y resto
+        const fechaObj = new Date(data.creado_en);
+        document.getElementById('res-fecha').textContent = isNaN(fechaObj) ? data.creado_en : fechaObj.toLocaleString("es-VE");
+        
+        document.getElementById('res-cod-diag').textContent = data.codigo_diagnostico || "-";
+        document.getElementById('res-recomendacion').textContent = data.recomendacion || "Análisis manual requerido.";
+        
+        // EL LOG VULNERABLE
+        document.getElementById('res-mensaje').textContent = data.mensaje_diagnostico || "Sin incidencias registradas.";
+
+        ticketResultArea.style.display = 'block';
+        lucide.createIcons(); // Refrescar el ícono de la terminal
+    })
+    .catch(err => {
+        btnBuscarTicket.textContent = "Buscar";
+        ticketErrorArea.textContent = "Error de conexión con el servidor.";
+        ticketErrorArea.style.display = 'block';
     });
 });

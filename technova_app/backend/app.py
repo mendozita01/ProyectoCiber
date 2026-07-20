@@ -59,7 +59,10 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             self.logout()
             return
 
-        # LA CORRECCIÓN ESTÁ AQUÍ
+        if self.path.startswith("/consultar_ticket"):
+            self.consultar_ticket()
+            return
+        
         if self.path.startswith("/admin.html"):
             empleado = self.obtener_empleado_sesion()
 
@@ -362,6 +365,69 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
                 },
                 status=500,
             )
+
+    def consultar_ticket(self):
+        """
+        Devuelve la información de un ticket específico para que el usuario (o atacante)
+        pueda ver el resultado del diagnóstico.
+        """
+        from urllib.parse import urlparse, parse_qs
+        
+        try:
+            url = urlparse(self.path)
+            parametros = parse_qs(url.query)
+            codigo_ticket = parametros.get("ticket", [""])[0].strip()
+
+            if not codigo_ticket:
+                self.responder_json({"error": "Debe enviar el código del ticket"}, status=400)
+                return
+
+            conexion = obtener_conexion()
+            cursor = conexion.cursor()
+
+            # Consultamos los datos del ticket. El campo 'mensaje_diagnostico'
+            # es donde se reflejarán los hashes si hubo una Inyección SQL.
+            cursor.execute(
+                """
+                SELECT 
+                    codigo_ticket, 
+                    estado, 
+                    ip_reportada, 
+                    codigo_diagnostico,
+                    mensaje_diagnostico, 
+                    nivel_alerta, 
+                    recomendacion,
+                    creado_en
+                FROM tickets
+                WHERE codigo_ticket = %s;
+                """,
+                (codigo_ticket,)
+            )
+
+            fila = cursor.fetchone()
+            cursor.close()
+            conexion.close()
+
+            if not fila:
+                self.responder_json({"error": "Ticket no encontrado"}, status=404)
+                return
+
+            datos_ticket = {
+                "codigo_ticket": fila[0],
+                "estado": fila[1],
+                "ip_reportada": fila[2],
+                "codigo_diagnostico": fila[3],
+                "mensaje_diagnostico": fila[4], # <- ¡Aquí se verán los hashes robados!
+                "nivel_alerta": fila[5],
+                "recomendacion": fila[6],
+                "creado_en": str(fila[7])
+            }
+
+            self.responder_json(datos_ticket)
+
+        except Exception as error:
+            print("Error consultando ticket individual:", error)
+            self.responder_json({"error": "Error interno del servidor", "detalle": str(error)}, status=500)            
 
     def login(self):
         try:
