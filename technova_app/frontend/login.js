@@ -1,25 +1,17 @@
 lucide.createIcons();
 
-// Animaciones on Scroll
-const scrollObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-        }
-    });
-}, { threshold: 0.2 });
-
-document.querySelectorAll('.slide-in-left, .slide-in-right').forEach(el => {
-    scrollObserver.observe(el);
-});
-
-// Canvas Background Logic
 const canvas = document.getElementById('networkCanvas');
 const ctx = canvas.getContext('2d');
 let particlesArray;
 
-canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; init(); });
+canvas.width = window.innerWidth; 
+canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => { 
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight; 
+    init(); 
+});
 
 let mouse = { x: null, y: null, radius: 120 };
 window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
@@ -36,7 +28,11 @@ class Particle {
     update() {
         if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
         if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
-        let dx = mouse.x - this.x; let dy = mouse.y - this.y; let distance = Math.sqrt(dx*dx + dy*dy);
+        
+        let dx = mouse.x - this.x; 
+        let dy = mouse.y - this.y; 
+        let distance = Math.sqrt(dx*dx + dy*dy);
+        
         if (distance < mouse.radius + this.size) {
             if (mouse.x < this.x && this.x < canvas.width - this.size * 10) this.x += 2;
             if (mouse.x > this.x && this.x > this.size * 10) this.x -= 2;
@@ -48,7 +44,8 @@ class Particle {
 }
 
 function init() {
-    particlesArray = []; let numberOfParticles = (canvas.height * canvas.width) / 15000;
+    particlesArray = []; 
+    let numberOfParticles = (canvas.height * canvas.width) / 15000;
     for (let i = 0; i < numberOfParticles; i++) {
         let size = (Math.random() * 2) + 1;
         let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
@@ -72,59 +69,79 @@ function connect() {
 }
 
 function animate() {
-    requestAnimationFrame(animate); ctx.clearRect(0, 0, innerWidth, innerHeight);
+    requestAnimationFrame(animate); 
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
     for (let i = 0; i < particlesArray.length; i++) particlesArray[i].update();
     connect();
 }
-init(); animate();
 
-// Logica del Modal
-const modalOverlay = document.getElementById('modalOverlay');
-const btnAbrirModal = document.getElementById('btnAbrirModal');
-const btnCerrarModalX = document.getElementById('btnCerrarModalX');
-const btnCancelarForm = document.getElementById('btnCancelarForm');
-const btnCerrarExito = document.getElementById('btnCerrarExito');
-const ticketForm = document.getElementById('ticketForm');
-const formView = document.getElementById('formView');
+init(); 
+animate();
+
+
+
+// LÓGICA DE LOGIN
+const loginForm = document.getElementById('loginForm');
+const loginView = document.getElementById('loginView');
 const successView = document.getElementById('successView');
+const successIcon = document.getElementById('successIcon');
+const errorBox = document.getElementById('errorBox');
+const errorMsg = document.getElementById('errorMsg');
+const btnSubmit = document.getElementById('btnSubmit');
 
-btnAbrirModal.addEventListener('click', () => {
-    formView.style.display = 'block'; successView.style.display = 'none';
-    ticketForm.reset(); modalOverlay.classList.add('active');
-});
-
-const cerrarModal = () => { modalOverlay.classList.remove('active'); };
-btnCerrarModalX.addEventListener('click', cerrarModal);
-btnCancelarForm.addEventListener('click', cerrarModal);
-btnCerrarExito.addEventListener('click', cerrarModal);
-modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) cerrarModal(); });
-
-ticketForm.addEventListener('submit', function(e) {
+loginForm.addEventListener('submit', function(e) {
     e.preventDefault();
+    
+    // Limpiar errores previos y cambiar estado del botón
+    errorBox.classList.remove('active');
+    const btnOriginalText = btnSubmit.innerHTML;
+    btnSubmit.innerHTML = '<i data-lucide="loader" class="spin"></i> Verificando...';
+    lucide.createIcons();
+    
+    // Preparar datos para el servidor
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
     
-    fetch('/crear_ticket', {
+    // Enviar petición al backend en Python
+    fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-        return response.json(); 
-    })
+    .then(response => response.json())
     .then(data => {
-        console.log("[+] Respuesta del Servidor:", data); 
+        if(data.status === 'success') {
+            // Ocultar formulario suavemente (Animación)
+            loginView.style.opacity = '0';
+            setTimeout(() => {
+                loginView.style.display = 'none';
+                successView.classList.add('active');
+                setTimeout(() => {
+                    successIcon.classList.add('done');
+                    successView.classList.add('done');
+                    
+                    // Redirigir a admin.html
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 1000);
+                    
+                }, 800);
+                
+            }, 400);
 
-        formView.style.display = 'none'; 
-        successView.style.display = 'block'; 
+        } else {
+            // Mostrar error de credenciales
+            errorMsg.textContent = data.message;
+            errorBox.classList.add('active');
+            btnSubmit.innerHTML = btnOriginalText;
+            lucide.createIcons();
+        }
     })
-    .catch(error => { 
-        console.error("[-] Error en la petición:", error);
-        
-        formView.style.display = 'none'; 
-        successView.style.display = 'block'; 
+    .catch(error => {
+        // Mostrar error de conexión/servidor
+        errorMsg.textContent = "Servidor No Disponible. Intente Más Tarde.";
+        errorBox.classList.add('active');
+        btnSubmit.innerHTML = btnOriginalText;
+        lucide.createIcons();
     });
 });
