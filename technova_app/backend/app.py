@@ -2,6 +2,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import parse_qs, quote
 import urllib.request
 import json
+import os
 
 from db import obtener_conexion
 
@@ -169,12 +170,9 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             self.end_headers()
 
     def consultar_diagnet(self, ip_reportada):
-        """
-        Consulta DiagNet.
-        Ejemplo: http://localhost:8080/diagnostico?ip=192.168.1.10
-        """
         ip_codificada = quote(ip_reportada)
-        url_diagnet = f"http://localhost:8080/diagnostico?ip={ip_codificada}"
+        base_diagnet = os.getenv("DIAGNET_URL", "http://127.0.0.1:8080")
+        url_diagnet = f"{base_diagnet}/diagnostico?ip={ip_codificada}"
 
         with urllib.request.urlopen(url_diagnet) as response:
             respuesta_api = response.read().decode("utf-8")
@@ -649,7 +647,7 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
 if __name__ == "__main__":
-    servidor = HTTPServer(("localhost", 3000), TechNovaHandler)
-    print("TechNova App vulnerable corriendo en http://localhost:3000 o http://127.0.0.1:3000")
-    print("Debe estar activa la API DiagNet en http://localhost:8080")
+    servidor = HTTPServer(("0.0.0.0", 3000), TechNovaHandler)
+    print("TechNova App vulnerable corriendo en http://0.0.0.0:3000")
+    print("Debe estar activa la API DiagNet segun la variable DIAGNET_URL del archivo .env")
     servidor.serve_forever()

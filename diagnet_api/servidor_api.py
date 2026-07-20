@@ -131,9 +131,9 @@ class DiagNetHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    servidor = HTTPServer(("localhost", 8080), DiagNetHandler)
+    servidor = HTTPServer(("0.0.0.0", 8080), DiagNetHandler)
 
-    print("DiagNet API corriendo en http://localhost:8080")
-    print("Ejemplo: http://localhost:8080/diagnostico?ip=192.168.1.10")
+    print("DiagNet API corriendo en http://0.0.0.0:8080")
+    print("Ejemplo desde otra maquina: http://IP_DIAGNET:8080/diagnostico?ip=192.168.1.10")
 
     servidor.serve_forever()
