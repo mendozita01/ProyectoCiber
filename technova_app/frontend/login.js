@@ -78,7 +78,21 @@ function animate() {
 init(); 
 animate();
 
+// MOSTRAR/OCULTAR CONTRASEÑA
+const togglePassword = document.getElementById('togglePassword');
+const passwordInput = document.getElementById('password');
 
+if (togglePassword && passwordInput) {
+    togglePassword.addEventListener('click', function () {
+        // Alternar el tipo de input
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        // Alternar el ícono (eye / eye-off)
+        this.innerHTML = type === 'password' ? '<i data-lucide="eye"></i>' : '<i data-lucide="eye-off"></i>';
+        lucide.createIcons();
+    });
+}
 
 // LÓGICA DE LOGIN
 const loginForm = document.getElementById('loginForm');
