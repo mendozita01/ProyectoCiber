@@ -255,29 +255,3 @@ btnBuscarTicket.addEventListener('click', () => {
         ticketErrorArea.style.display = 'block';
     });
 });
-
-// Funcionalidad para copiar el volcado del sistema al portapapeles
-const btnCopiarLog = document.getElementById('btnCopiarLog');
-if (btnCopiarLog) {
-    btnCopiarLog.addEventListener('click', () => {
-        const textoLog = document.getElementById('res-mensaje').textContent;
-        if (!textoLog) return;
-
-        navigator.clipboard.writeText(textoLog).then(() => {
-            const originalHTML = btnCopiarLog.innerHTML;
-            btnCopiarLog.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px;"></i> ¡Copiado!';
-            btnCopiarLog.style.color = 'var(--success)';
-            btnCopiarLog.style.borderColor = 'var(--success)';
-            lucide.createIcons();
-
-            setTimeout(() => {
-                btnCopiarLog.innerHTML = originalHTML;
-                btnCopiarLog.style.color = '#ccc';
-                btnCopiarLog.style.borderColor = '#444';
-                lucide.createIcons();
-            }, 2000);
-        }).catch(err => {
-            console.error('Error al copiar al portapapeles: ', err);
-        });
-    });
-}
