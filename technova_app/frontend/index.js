@@ -106,61 +106,165 @@ btnCancelarForm.addEventListener('click', cerrarModal);
 btnCerrarExito.addEventListener('click', cerrarModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) cerrarModal(); });
 
+function mostrarErrorTicket(mensaje) {
+    const errorArea = document.getElementById('formErrorMsg');
+
+    errorArea.textContent = mensaje;
+    errorArea.style.display = 'block';
+}
+
+function limpiarErrorTicket() {
+    const errorArea = document.getElementById('formErrorMsg');
+
+    errorArea.textContent = '';
+    errorArea.style.display = 'none';
+
+    document.querySelectorAll('#ticketForm input, #ticketForm textarea').forEach(campo => {
+        campo.classList.remove('input-error');
+    });
+}
+
+function marcarCampoError(idCampo) {
+    const campo = document.getElementById(idCampo);
+
+    if (campo) {
+        campo.classList.add('input-error');
+        campo.focus();
+    }
+}
+
+function validarDatosTicket(data) {
+    const patronNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s.'-]{2,80}$/;
+    const patronEmpresa = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s.,&()_-]{0,100}$/;
+    const patronCorreo = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const patronTelefono = /^\+?[0-9\s().-]{7,20}$/;
+    const patronIPv4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+
+    if (!data.nombre_solicitante) {
+        marcarCampoError('nombre');
+        return 'Debe ingresar el nombre del solicitante.';
+    }
+
+    if (!patronNombre.test(data.nombre_solicitante)) {
+        marcarCampoError('nombre');
+        return 'El nombre solo debe contener letras, espacios, puntos, guiones o apóstrofes.';
+    }
+
+    if (data.empresa_solicitante && !patronEmpresa.test(data.empresa_solicitante)) {
+        marcarCampoError('empresa');
+        return 'La empresa o departamento contiene caracteres no permitidos.';
+    }
+
+    if (!data.correo_solicitante) {
+        marcarCampoError('correo');
+        return 'Debe ingresar el correo de contacto.';
+    }
+
+    if (!patronCorreo.test(data.correo_solicitante)) {
+        marcarCampoError('correo');
+        return 'Debe ingresar un correo válido.';
+    }
+
+    if (!data.telefono_solicitante) {
+        marcarCampoError('telefono');
+        return 'Debe ingresar el teléfono de contacto.';
+    }
+
+    if (!patronTelefono.test(data.telefono_solicitante)) {
+        marcarCampoError('telefono');
+        return 'El teléfono solo debe contener números, espacios, paréntesis, guiones o el símbolo +.';
+    }
+
+    if (!data.ip_reportada) {
+        marcarCampoError('ip');
+        return 'Debe ingresar la dirección IP afectada.';
+    }
+
+    if (!patronIPv4.test(data.ip_reportada)) {
+        marcarCampoError('ip');
+        return 'La dirección IP no tiene un formato válido.';
+    }
+
+    if (!data.descripcion_problema) {
+        marcarCampoError('descripcion');
+        return 'Debe ingresar una descripción del problema.';
+    }
+
+    if (data.descripcion_problema.length < 5 || data.descripcion_problema.length > 500) {
+        marcarCampoError('descripcion');
+        return 'La descripción debe tener entre 5 y 500 caracteres.';
+    }
+
+    if (/[<>]/.test(data.descripcion_problema)) {
+        marcarCampoError('descripcion');
+        return 'La descripción contiene caracteres no permitidos.';
+    }
+
+    return null;
+}
+
 ticketForm.addEventListener('submit', function(e) {
     e.preventDefault();
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData.entries());
-    
-    const btnSubmit = this.querySelector('.btn-submit');
-    const originalText = btnSubmit.innerHTML;
-    btnSubmit.innerHTML = 'Verificando IP...';
-    btnSubmit.disabled = true;
 
-    const errorMsgDiv = document.getElementById('formErrorMsg');
-    errorMsgDiv.style.display = 'none';
-    errorMsgDiv.textContent = '';
-    
+    limpiarErrorTicket();
+
+    const formData = new FormData(this);
+
+    const data = {
+        nombre_solicitante: formData.get('nombre_solicitante').trim(),
+        correo_solicitante: formData.get('correo_solicitante').trim().toLowerCase(),
+        telefono_solicitante: formData.get('telefono_solicitante').trim(),
+        empresa_solicitante: formData.get('empresa_solicitante').trim(),
+        ip_reportada: formData.get('ip_reportada').trim(),
+        descripcion_problema: formData.get('descripcion_problema').trim()
+    };
+
+    const errorValidacion = validarDatosTicket(data);
+
+    if (errorValidacion) {
+        mostrarErrorTicket(errorValidacion);
+        return;
+    }
+
+    const botonEnviar = this.querySelector('.btn-submit');
+
+    botonEnviar.disabled = true;
+    botonEnviar.textContent = 'Enviando...';
+
     fetch('/crear_ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     })
     .then(async response => {
-        const resData = await response.json();
-        // Si el código HTTP no es 200 OK, forzamos el error con el mensaje de Python
-        if (!response.ok) {
-            throw new Error(resData.message || `Error HTTP: ${response.status}`);
-        }
-        return resData; 
-    })
-    .then(data => {
-        console.log("[+] Respuesta del Servidor:", data); 
+        const respuesta = await response.json().catch(() => ({}));
 
+        if (!response.ok || respuesta.status === 'error') {
+            throw new Error(
+                respuesta.message ||
+                respuesta.mensaje ||
+                'No se pudo crear el ticket.'
+            );
+        }
+
+        return respuesta;
+    })
+    .then(respuesta => {
         const idDisplay = document.getElementById('ticketIdResult');
-        if (data.ticket) {
-            idDisplay.textContent = data.ticket; 
-        } else {
-            idDisplay.textContent = "Registrado";
-        }
 
-        formView.style.display = 'none'; 
-        successView.style.display = 'block'; 
-        
-        btnSubmit.innerHTML = originalText;
-        btnSubmit.disabled = false;
+        idDisplay.textContent = respuesta.ticket || 'Registrado';
+
+        formView.style.display = 'none';
+        successView.style.display = 'block';
     })
-    .catch(error => { 
-        console.error("[-] Error en la petición:", error);
-        
-        // Mostrar el error en la interfaz sin cerrar el modal
-        errorMsgDiv.textContent = error.message;
-        errorMsgDiv.style.display = 'block';
-        
-        btnSubmit.innerHTML = originalText;
-        btnSubmit.disabled = false;
+    .catch(error => {
+        mostrarErrorTicket(error.message);
+    })
+    .finally(() => {
+        botonEnviar.disabled = false;
+        botonEnviar.textContent = 'Enviar a Diagnóstico';
     });
 });
-
 
 // =========================================
 // Lógica del Modal de Consulta de Tickets

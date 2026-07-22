@@ -163,8 +163,9 @@ def validar_respuesta_diagnet(datos):
     """
     Valida que la respuesta de DiagNet:
     1. Sea un objeto JSON (dict).
-    2. Contenga exactamente las claves esperadas, con el tipo correcto.
-    3. Tenga un codigo_diagnostico dentro de la lista blanca.
+    2. Contenga exactamente las claves esperadas, sin claves faltantes ni sobrantes.
+    3. Tenga tipos de datos correctos.
+    4. Tenga un codigo_diagnostico dentro de la lista blanca.
 
     Esta es la contramedida central para API10: en la version
     vulnerable, este objeto se usaba "tal cual" sin ninguna de
@@ -173,9 +174,19 @@ def validar_respuesta_diagnet(datos):
     if not isinstance(datos, dict):
         raise RespuestaDiagNetInvalida("La respuesta de DiagNet no es un objeto JSON valido.")
 
+    claves_esperadas = set(ESQUEMA_DIAGNET.keys())
+    claves_recibidas = set(datos.keys())
+
+    if claves_recibidas != claves_esperadas:
+        claves_faltantes = claves_esperadas - claves_recibidas
+        claves_sobrantes = claves_recibidas - claves_esperadas
+
+        raise RespuestaDiagNetInvalida(
+            f"La respuesta de DiagNet no cumple el esquema esperado. "
+            f"Faltantes: {claves_faltantes}. Sobrantes: {claves_sobrantes}."
+        )
+
     for clave, tipos_aceptados in ESQUEMA_DIAGNET.items():
-        if clave not in datos:
-            raise RespuestaDiagNetInvalida(f"Falta la clave esperada '{clave}' en la respuesta de DiagNet.")
         if not isinstance(datos[clave], tipos_aceptados):
             raise RespuestaDiagNetInvalida(
                 f"Tipo invalido para '{clave}': se esperaba {tipos_aceptados}, llego {type(datos[clave])}."
@@ -187,7 +198,6 @@ def validar_respuesta_diagnet(datos):
         )
 
     return datos
-
 
 class TechNovaHandler(SimpleHTTPRequestHandler):
     """
@@ -249,6 +259,13 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def crear_ticket(self):
+        """
+        Crea un ticket a partir de la incidencia reportada por el solicitante.
+
+        En la versión asegurada, la respuesta de DiagNet no se usa directamente:
+        primero se consulta por HTTPS, luego se valida su estructura y finalmente
+        se consulta el catálogo interno mediante una consulta parametrizada.
+        """
         try:
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length).decode("utf-8")
@@ -257,8 +274,13 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             ip_reportada = params.get("ip_reportada", "").strip()
 
             if not ip_reportada:
-                self.send_response(400)
-                self.end_headers()
+                self.responder_json(
+                    {
+                        "status": "error",
+                        "message": "Debe ingresar una IP para reportar el incidente."
+                    },
+                    status=400,
+                )
                 return
 
             nombre = params.get("nombre_solicitante", "Anónimo")
@@ -267,49 +289,85 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             empresa = params.get("empresa_solicitante", "")
             descripcion = params.get("descripcion_problema", "")
 
-            # 1. Consultar API externa (ahora por HTTPS + pinning)
+            # 1. Consultar API externa de forma segura.
+            # Antes, TechNova consumía la respuesta de DiagNet sin validar
+            # si realmente venía del servicio esperado ni si el JSON era confiable.
+            #
+            # Ahora la consulta se realiza por HTTPS y consultar_diagnet()
+            # valida el certificado conocido de DiagNet. Luego se valida
+            # el esquema y la lista blanca de códigos diagnósticos.
             try:
                 datos_api = self.consultar_diagnet(ip_reportada)
                 datos_api = validar_respuesta_diagnet(datos_api)
+
             except RespuestaDiagNetInvalida as error:
-                # La respuesta no paso la validacion de esquema/lista blanca.
-                # Se registra el detalle solo en el log del servidor y se
-                # continua el flujo tratando el diagnostico como no disponible,
-                # sin exponer el motivo tecnico al cliente.
+                # Si la API devuelve una respuesta alterada, incompleta o con un
+                # codigo_diagnostico fuera de la lista blanca, se rechaza.
+                # El detalle queda en el log, pero no se muestra al usuario.
                 logging.warning("Respuesta de DiagNet rechazada: %s", error)
-                datos_api = {
-                    "inventario_encontrado": False,
-                    "nombre_equipo": "",
-                    "area": "",
-                    "estado_equipo": "desconocido",
-                    "latencia_ms": None,
-                    "codigo_diagnostico": "IP_NOT_FOUND",
-                }
+
+                self.responder_json(
+                    {
+                        "status": "error",
+                        "message": "No se pudo validar la respuesta del servicio de diagnóstico."
+                    },
+                    status=502,
+                )
+                return
+
             except Exception as error:
+                # Error de comunicación, certificado, timeout o respuesta no válida.
+                # En la versión asegurada no se continúa creando tickets con datos
+                # inventados cuando la API externa no puede verificarse.
                 logging.error("Error consultando DiagNet: %s", error)
-                datos_api = {
-                    "inventario_encontrado": False,
-                    "nombre_equipo": "",
-                    "area": "",
-                    "estado_equipo": "desconocido",
-                    "latencia_ms": None,
-                    "codigo_diagnostico": "IP_NOT_FOUND",
-                }
+
+                self.responder_json(
+                    {
+                        "status": "error",
+                        "message": "No se pudo consultar el servicio de diagnóstico en este momento."
+                    },
+                    status=503,
+                )
+                return
 
             inventario_encontrado = datos_api.get("inventario_encontrado")
             nombre_equipo = datos_api.get("nombre_equipo", "")
             area_equipo = datos_api.get("area", "")
             estado_equipo = datos_api.get("estado_equipo", "")
             latencia_ms = datos_api.get("latencia_ms")
-            codigo_diagnostico = datos_api.get("codigo_diagnostico", "IP_NOT_FOUND")
+            codigo_diagnostico = datos_api.get("codigo_diagnostico", "")
 
-            estado_ticket = "diagnosticado" if inventario_encontrado else "en_revision"
+            if not inventario_encontrado:
+                logging.warning("IP no registrada en inventario DiagNet: %s", ip_reportada)
+
+                self.responder_json(
+                    {
+                        "status": "error",
+                        "message": "La IP reportada no se encuentra registrada."
+                    },
+                    status=404,
+                )
+                return
+
+            # 2. Determinar el estado inicial según el código diagnóstico validado.
+            if codigo_diagnostico == "OK-200":
+                estado_ticket = "diagnosticado"
+            else:
+                estado_ticket = "en_revision"
 
             conexion = obtener_conexion()
             cursor = conexion.cursor()
 
+            # 3. Consultar catálogo interno de forma segura.
+            # codigo_diagnostico proviene de una API externa, por eso no se concatena
+            # dentro del SQL. consultar_catalogo_seguro() usa parámetros (%s),
+            # evitando que el valor recibido sea interpretado como sintaxis SQL.
             resultado_catalogo = self.consultar_catalogo_seguro(cursor, codigo_diagnostico)
 
+            # 4. Guardar ticket.
+            # El código público del ticket no se genera de forma secuencial en Python.
+            # PostgreSQL lo asigna mediante trigger y guardar_ticket() lo recupera
+            # con RETURNING codigo_ticket.
             codigo_ticket = self.guardar_ticket(
                 cursor,
                 nombre,
@@ -334,18 +392,25 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             cursor.close()
             conexion.close()
 
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(
-                json.dumps({"status": "success", "ticket": codigo_ticket}).encode("utf-8")
+            self.responder_json(
+                {
+                    "status": "success",
+                    "ticket": codigo_ticket,
+                },
+                status=200,
             )
 
         except Exception as e:
-            # No se expone el detalle de la excepcion al cliente.
+            # No se expone el detalle técnico al cliente.
             logging.error("Error en crear_ticket: %s", e)
-            self.send_response(500)
-            self.end_headers()
+
+            self.responder_json(
+                {
+                    "status": "error",
+                    "message": "No se pudo crear el ticket en este momento."
+                },
+                status=500,
+            )
 
     def consultar_diagnet(self, ip_reportada):
         """
@@ -559,44 +624,29 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             self.responder_json({"status": "ok", "tickets": tickets})
 
         except Exception as error:
-            # No se envia "detalle" al cliente (a diferencia de la
-            # version vulnerable); solo se registra en el log interno.
             logging.error("Error consultando tickets: %s", error)
             self.responder_json(
-                {
-                    "status": "error",
-                    "mensaje": "Error consultando tickets",
-                },
+                {"status": "error", "mensaje": "Error consultando tickets"},
                 status=500,
             )
 
+
     def validar_acceso_interno(self, roles_permitidos=None):
         """
-        Medida de aseguramiento:
-        valida que las rutas administrativas solo sean usadas por empleados
-        con sesión activa y, cuando aplica, con un rol autorizado.
-
-        Esto corrige la ruptura de control de acceso que permitía llamar
-        rutas internas directamente sin pasar por el panel autenticado.
+        Valida que la ruta sea usada por un empleado autenticado y autorizado.
         """
         empleado = self.obtener_empleado_sesion()
 
         if empleado is None:
             self.responder_json(
-                {
-                    "status": "error",
-                    "mensaje": "Debe iniciar sesión para acceder a este recurso.",
-                },
+                {"status": "error", "mensaje": "Debe iniciar sesión para acceder a este recurso."},
                 status=401,
             )
             return None
 
         if roles_permitidos is not None and empleado["tipo_empleado"] not in roles_permitidos:
             self.responder_json(
-                {
-                    "status": "error",
-                    "mensaje": "No tiene permisos para realizar esta acción.",
-                },
+                {"status": "error", "mensaje": "No tiene permisos para realizar esta acción."},
                 status=403,
             )
             return None
@@ -604,16 +654,7 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         return empleado
 
     def consultar_ticket(self):
-        """
-        Consulta pública de seguimiento de ticket.
-
-        Contramedida aplicada:
-        ya no se consulta el ticket solo por un identificador predecible.
-        Se exige también el correo del solicitante para reducir el riesgo
-        de enumeración de tickets. Además, la respuesta pública no
-        expone datos técnicos internos como IP reportada, código
-        diagnóstico o mensaje diagnóstico completo.
-        """
+        """Consulta pública de seguimiento de ticket."""
         try:
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length).decode("utf-8")
@@ -624,45 +665,30 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
 
             if not codigo_ticket or not correo_solicitante:
                 self.responder_json(
-                    {
-                        "status": "error",
-                        "message": "Debe ingresar el código del ticket y el correo del solicitante.",
-                    },
+                    {"status": "error", "message": "Debe ingresar el código del ticket y el correo del solicitante."},
                     status=400,
                 )
                 return
 
             if not validar_formato_codigo_ticket(codigo_ticket):
                 self.responder_json(
-                    {
-                        "status": "error",
-                        "message": "El formato del código de ticket no es válido.",
-                    },
+                    {"status": "error", "message": "El formato del código de ticket no es válido."},
                     status=400,
                 )
                 return
 
             if "@" not in correo_solicitante or "." not in correo_solicitante:
                 self.responder_json(
-                    {
-                        "status": "error",
-                        "message": "El correo ingresado no tiene un formato válido.",
-                    },
+                    {"status": "error", "message": "El correo ingresado no tiene un formato válido."},
                     status=400,
                 )
                 return
 
             conexion = obtener_conexion()
             cursor = conexion.cursor()
-            # La consulta usa código + correo para verificar propiedad básica del ticket.
-            # También se usan parámetros para evitar inyección SQL en la consulta pública.
             cursor.execute(
                 """
-                SELECT
-                    codigo_ticket,
-                    estado,
-                    empresa_solicitante,
-                    creado_en
+                SELECT codigo_ticket, estado, empresa_solicitante, creado_en
                 FROM tickets
                 WHERE codigo_ticket = %s
                   AND LOWER(correo_solicitante) = %s;
@@ -671,22 +697,17 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             )
 
             fila = cursor.fetchone()
-
             cursor.close()
             conexion.close()
 
             if fila is None:
                 self.responder_json(
-                    {
-                        "status": "error",
-                        "message": "No se encontró un ticket con los datos ingresados.",
-                    },
+                    {"status": "error", "message": "No se encontró un ticket con los datos ingresados."},
                     status=404,
                 )
                 return
 
             estado = fila[1]
-
             mensajes_estado = {
                 "diagnosticado": "El incidente fue revisado automáticamente y no se detectaron fallas técnicas en el equipo reportado.",
                 "en_revision": "El incidente está siendo revisado por el equipo de soporte Nivel 1.",
@@ -699,21 +720,15 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
                 "estado": estado,
                 "empresa_solicitante": fila[2],
                 "creado_en": str(fila[3]),
-                "mensaje_estado": mensajes_estado.get(
-                    estado, "El caso se encuentra registrado en el sistema."
-                ),
+                "mensaje_estado": mensajes_estado.get(estado, "El caso se encuentra registrado en el sistema."),
             }
 
             self.responder_json({"status": "success", "ticket": ticket})
 
         except Exception as error:
             logging.error("Error consultando ticket: %s", error)
-
             self.responder_json(
-                {
-                    "status": "error",
-                    "message": "No se pudo consultar el ticket en este momento.",
-                },
+                {"status": "error", "message": "No se pudo consultar el ticket en este momento."},
                 status=500,
             )
 
@@ -721,7 +736,6 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         try:
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length).decode("utf-8")
-
             params = json.loads(post_data)
             usuario = params.get("usuario", "").strip()
             password = params.get("password", "").strip()
@@ -737,11 +751,6 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
 
             conexion = obtener_conexion()
             cursor = conexion.cursor()
-
-            # Se obtiene el hash almacenado; la verificación de la contraseña
-            # se hace en Python con PBKDF2-HMAC-SHA256, no comparando MD5
-            # dentro del SQL (como hacia MD5(%s) en la
-            # version vulnerable).
             cursor.execute(
                 "SELECT id, nombre, tipo_empleado, password_hash FROM empleados WHERE usuario = %s AND activo = TRUE",
                 (usuario,),
@@ -751,17 +760,11 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             conexion.close()
 
             login_valido = None
-
             if fila is not None:
                 empleado_id, nombre, tipo_empleado, password_hash = fila
                 if verificar_password(password, password_hash):
                     login_valido = (empleado_id, nombre, tipo_empleado)
 
-            # Mensaje de error identico exista o no el usuario, para
-            # evitar que un atacante pueda enumerar usuarios validos
-            # observando la diferencia entre "usuario no autorizado" y
-            # "contraseña invalida" (como si ocurria en la version
-            # vulnerable).
             if login_valido is None:
                 logging.warning("Intento de login fallido para usuario: %s", usuario)
                 respuesta = {"status": "error", "message": MENSAJE_GENERICO}
@@ -770,11 +773,9 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
-
             if login_valido:
                 empleado_id = login_valido[0]
                 self.send_header("Set-Cookie", f"empleado_id={empleado_id}; Path=/; HttpOnly; Secure")
-
             self.end_headers()
             self.wfile.write(json.dumps(respuesta).encode("utf-8"))
 
@@ -786,15 +787,8 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"status": "error", "message": "Servidor No Disponible. Intente más tarde."}).encode("utf-8"))
 
     def cambiar_estado(self):
-        """
-        Cambio interno de estado del ticket.
-
-        Medida de aseguramiento:
-        solo empleados autenticados pueden modificar estados y el nuevo
-        estado debe pertenecer a los estados oficiales del flujo.
-        """
+        """Cambio interno de estado del ticket."""
         empleado = self.validar_acceso_interno({"admin", "soporte", "analista"})
-
         if empleado is None:
             return
 
@@ -805,32 +799,18 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
 
             codigo_ticket = params.get("ticket_id", "").strip().upper()
             nuevo_estado = params.get("nuevo_estado", "").strip()
-
             ESTADOS_VALIDOS = {"diagnosticado", "en_revision", "asignado", "cerrado"}
 
             if not validar_formato_codigo_ticket(codigo_ticket):
-                self.responder_json(
-                    {
-                        "status": "error",
-                        "mensaje": "El código del ticket no tiene un formato válido.",
-                    },
-                    status=400,
-                )
+                self.responder_json({"status": "error", "mensaje": "El código del ticket no tiene un formato válido."}, status=400)
                 return
 
             if nuevo_estado not in ESTADOS_VALIDOS:
-                self.responder_json(
-                    {
-                        "status": "error",
-                        "mensaje": "El estado indicado no es válido.",
-                    },
-                    status=400,
-                )
+                self.responder_json({"status": "error", "mensaje": "El estado indicado no es válido."}, status=400)
                 return
 
             conexion = obtener_conexion()
             cursor = conexion.cursor()
-
             cursor.execute(
                 """
                 UPDATE tickets
@@ -844,30 +824,15 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             conexion.commit()
             cursor.close()
             conexion.close()
-
             self.responder_json({"status": "ok"})
 
         except Exception as error:
             logging.error("Error cambiando estado: %s", error)
-            self.responder_json(
-                {
-                    "status": "error",
-                    "mensaje": "No se pudo cambiar el estado del ticket.",
-                },
-                status=500,
-            )
+            self.responder_json({"status": "error", "mensaje": "No se pudo cambiar el estado del ticket."}, status=500)
 
     def asignar_ticket(self):
-        """
-        Escalamiento interno de ticket.
-
-        Medida de aseguramiento:
-        solo empleados autenticados con rol admin o soporte pueden escalar
-        un incidente. La ruta ya no puede ser usada libremente desde fuera
-        del panel administrativo.
-        """
+        """Escalamiento interno de ticket."""
         empleado = self.validar_acceso_interno({"admin", "soporte"})
-
         if empleado is None:
             return
 
@@ -881,33 +846,15 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             mensaje = params.get("mensaje", "").strip()
 
             if not validar_formato_codigo_ticket(codigo_ticket):
-                self.responder_json(
-                    {
-                        "status": "error",
-                        "mensaje": "El código del ticket no tiene un formato válido.",
-                    },
-                    status=400,
-                )
+                self.responder_json({"status": "error", "mensaje": "El código del ticket no tiene un formato válido."}, status=400)
                 return
 
             if "@" not in analista_correo or "." not in analista_correo:
-                self.responder_json(
-                    {
-                        "status": "error",
-                        "mensaje": "Debe ingresar un correo válido para el analista.",
-                    },
-                    status=400,
-                )
+                self.responder_json({"status": "error", "mensaje": "Debe ingresar un correo válido para el analista."}, status=400)
                 return
 
             if not mensaje:
-                self.responder_json(
-                    {
-                        "status": "error",
-                        "mensaje": "Debe ingresar un mensaje para el escalamiento.",
-                    },
-                    status=400,
-                )
+                self.responder_json({"status": "error", "mensaje": "Debe ingresar un mensaje para el escalamiento."}, status=400)
                 return
 
             logging.info(
@@ -920,7 +867,6 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
 
             conexion = obtener_conexion()
             cursor = conexion.cursor()
-
             cursor.execute(
                 """
                 UPDATE tickets
@@ -934,23 +880,15 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             conexion.commit()
             cursor.close()
             conexion.close()
-
             self.responder_json({"status": "ok"})
 
         except Exception as error:
             logging.error("Error asignando ticket: %s", error)
-            self.responder_json(
-                {
-                    "status": "error",
-                    "mensaje": "No se pudo asignar el ticket.",
-                },
-                status=500,
-            )
+            self.responder_json({"status": "error", "mensaje": "No se pudo asignar el ticket."}, status=500)
 
     def obtener_empleado_sesion(self):
         cookie = self.headers.get("Cookie", "")
         empleado_id = None
-
         for parte in cookie.split(";"):
             parte = parte.strip()
             if parte.startswith("empleado_id="):
@@ -963,13 +901,12 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         try:
             conexion = obtener_conexion()
             cursor = conexion.cursor()
-
             cursor.execute(
                 """
                 SELECT id, nombre, apellido, correo, usuario, tipo_empleado
                 FROM empleados
                 WHERE id = %s
-                AND activo = TRUE;
+                  AND activo = TRUE;
                 """,
                 (empleado_id,),
             )
@@ -977,7 +914,6 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             empleado = cursor.fetchone()
             cursor.close()
             conexion.close()
-
             if empleado is None:
                 return None
 
@@ -996,21 +932,10 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
 
     def empleado_actual(self):
         empleado = self.obtener_empleado_sesion()
-
         if empleado is None:
-            self.responder_json(
-                {
-                    "status": "error",
-                    "mensaje": "No Hay Empleado Con Sesión Activa",
-                },
-                status=401,
-            )
+            self.responder_json({"status": "error", "mensaje": "No Hay Empleado Con Sesión Activa"}, status=401)
             return
-
-        self.responder_json({
-            "status": "ok",
-            "empleado": empleado,
-        })
+        self.responder_json({"status": "ok", "empleado": empleado})
 
     def logout(self):
         self.send_response(302)

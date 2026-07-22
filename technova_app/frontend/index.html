@@ -135,67 +135,147 @@
         </div>
     </footer>
 
-    <!-- MODAL TICKET -->
-    <div id="modalOverlay" class="modal-overlay">
-        <div class="modal-content">
-            <div id="formView">
-                <div class="modal-header">
-                    <h3><i data-lucide="file-text" style="color: var(--primary);"></i> Nuevo Incidente</h3>
-                    <button class="close-btn" id="btnCerrarModalX"><i data-lucide="x"></i></button>
-                </div>
-                <form id="ticketForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="nombre">Nombre del Solicitante *</label>
-                            <input type="text" id="nombre" name="nombre_solicitante">
-                        </div>
-                        <div class="form-group">
-                            <label for="empresa">Empresa / Departamento</label>
-                            <input type="text" id="empresa" name="empresa_solicitante">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="correo">Correo de Contacto *</label>
-                            <input type="email" id="correo" name="correo_solicitante">
-                        </div>
-                        <div class="form-group">
-                            <label for="telefono">Teléfono</label>
-                            <input type="text" id="telefono" name="telefono_solicitante" placeholder="+58 000-000000">
-                        </div>
-                    </div>
-                    <div class="form-group ip-field">
-                        <label for="ip">Dirección IP Afectada *</label>
-                        <input type="text" id="ip" name="ip_reportada">
-                    </div>
-                    <div class="form-group">
-                        <label for="descripcion">Descripción del Problema *</label>
-                        <textarea id="descripcion" name="descripcion_problema" rows="3" required placeholder="Detalle la latencia o el comportamiento inusual..."></textarea>
-                    </div>
-                    <div id="formErrorMsg" style="display: none; color: var(--alert); background: rgba(233, 30, 99, 0.1); padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: 600; font-size: 0.9rem; text-align: center; border: 1px solid rgba(233, 30, 99, 0.3);"></div>
+ <!-- MODAL TICKET -->
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <div id="formView">
+            <div class="modal-header">
+                <h3>
+                    <i data-lucide="file-text" style="color: var(--primary);"></i>
+                    Nuevo Incidente
+                </h3>
+                <button class="close-btn" id="btnCerrarModalX" type="button">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
 
-                    <div class="form-actions">
-                        <button type="button" class="btn-cancel" id="btnCancelarForm">Cancelar</button>
-                        <button type="submit" class="btn-submit">Enviar a Diagnóstico</button>
+            <form id="ticketForm" novalidate>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nombre">Nombre del Solicitante *</label>
+                        <input
+                            type="text"
+                            id="nombre"
+                            name="nombre_solicitante"
+                            required
+                            minlength="2"
+                            maxlength="80"
+                            autocomplete="name"
+                            placeholder="Ej. María Pérez"
+                        >
                     </div>
-                </form>
-            </div>
-            <div id="successView">
-                <div class="success-animation">
-                    <i data-lucide="check"></i>
+
+                    <div class="form-group">
+                        <label for="empresa">Empresa / Departamento</label>
+                        <input
+                            type="text"
+                            id="empresa"
+                            name="empresa_solicitante"
+                            maxlength="100"
+                            autocomplete="organization"
+                            placeholder="Ej. Administración"
+                        >
+                    </div>
                 </div>
-                <h3 style="color: var(--text-color); font-size: 1.6rem; margin-bottom: 10px;">Ticket Registrado Exitosamente</h3>
-                <p style="color: #666; margin-bottom: 25px;">La IP ha sido enviada al sistema y el caso está registrado para la revisión de nuestros técnicos.</p>
-                <div class="ticket-id-display">
-                    <p style="font-size: 0.9rem; margin-bottom: 5px;">Su número de seguimiento es:</p>
-                    <h2 id="ticketIdResult">---</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="correo">Correo de Contacto *</label>
+                        <input
+                            type="email"
+                            id="correo"
+                            name="correo_solicitante"
+                            required
+                            maxlength="120"
+                            autocomplete="email"
+                            placeholder="correo@empresa.com"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono *</label>
+                        <input
+                            type="text"
+                            id="telefono"
+                            name="telefono_solicitante"
+                            required
+                            minlength="7"
+                            maxlength="20"
+                            autocomplete="tel"
+                            placeholder="+58 000-000000"
+                        >
+                    </div>
                 </div>
-                <button class="btn-submit" id="btnCerrarExito" style="width: 100%; margin-top:0;">Finalizar</button>
+
+                <div class="form-group ip-field">
+                    <label for="ip">Dirección IP Afectada *</label>
+                    <input
+                        type="text"
+                        id="ip"
+                        name="ip_reportada"
+                        required
+                        maxlength="15"
+                        placeholder="192.168.1.10"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="descripcion">Descripción del Problema *</label>
+                    <textarea
+                        id="descripcion"
+                        name="descripcion_problema"
+                        rows="3"
+                        required
+                        minlength="10"
+                        maxlength="500"
+                        placeholder="Detalle la latencia o el comportamiento inusual..."
+                    ></textarea>
+                </div>
+
+                <div
+                    id="formErrorMsg"
+                    class="form-error"
+                    style="display: none;"
+                ></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" id="btnCancelarForm">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        Enviar a Diagnóstico
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="successView">
+            <div class="success-animation">
+                <i data-lucide="check"></i>
             </div>
+
+            <h3 style="color: var(--text-color); font-size: 1.6rem; margin-bottom: 10px;">
+                Ticket Registrado Exitosamente
+            </h3>
+
+            <p style="color: #666; margin-bottom: 25px;">
+                La IP ha sido enviada al sistema y el caso está registrado para la revisión de nuestros técnicos.
+            </p>
+
+            <div class="ticket-id-display">
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">
+                    Su número de seguimiento es:
+                </p>
+                <h2 id="ticketIdResult">---</h2>
+            </div>
+
+            <button class="btn-submit" id="btnCerrarExito" type="button" style="width: 100%; margin-top:0;">
+                Finalizar
+            </button>
         </div>
     </div>
+</div>
 
-    <!-- MODAL PARA CONSULTAR TICKET -->
 <!-- MODAL PARA CONSULTAR TICKET -->
 <div id="modalConsultaOverlay" class="modal-overlay">
     <div class="modal-content" style="max-width: 620px;">

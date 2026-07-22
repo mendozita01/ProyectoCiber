@@ -336,3 +336,22 @@ main.hero {
 
 .badge-asignado { background: rgba(139, 92, 246, 0.1); color: #6D28D9; }
 .badge-asignado::before { background: #6D28D9; }
+
+/* =========================================
+   Errores de formulario
+   ========================================= */
+.form-error {
+    margin: 12px 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(233, 30, 99, 0.08);
+    border: 1px solid rgba(233, 30, 99, 0.25);
+    color: var(--alert);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.input-error {
+    border-color: var(--alert) !important;
+    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.12);
+}
