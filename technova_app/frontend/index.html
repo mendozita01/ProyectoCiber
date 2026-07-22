@@ -144,10 +144,11 @@
                     <button class="close-btn" id="btnCerrarModalX"><i data-lucide="x"></i></button>
                 </div>
                 <form id="ticketForm">
-                    <div class="form-row">
+                   <div class="form-row">
                         <div class="form-group">
                             <label for="nombre">Nombre del Solicitante *</label>
-                            <input type="text" id="nombre" name="nombre_solicitante">
+                            <!-- Agregado el required aquí -->
+                            <input type="text" id="nombre" name="nombre_solicitante" required>
                         </div>
                         <div class="form-group">
                             <label for="empresa">Empresa / Departamento</label>
@@ -157,16 +158,16 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="correo">Correo de Contacto *</label>
-                            <input type="email" id="correo" name="correo_solicitante">
+                            <input type="email" id="correo" name="correo_solicitante" required>
                         </div>
                         <div class="form-group">
                             <label for="telefono">Teléfono</label>
-                            <input type="text" id="telefono" name="telefono_solicitante" placeholder="+58 000-000000">
+                            <input type="text" id="telefono" name="telefono_solicitante" placeholder="+58 000-000000" required>
                         </div>
                     </div>
                     <div class="form-group ip-field">
                         <label for="ip">Dirección IP Afectada *</label>
-                        <input type="text" id="ip" name="ip_reportada">
+                        <input type="text" id="ip" name="ip_reportada" required>
                     </div>
                     <div class="form-group">
                         <label for="descripcion">Descripción del Problema *</label>
