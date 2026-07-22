@@ -120,6 +120,10 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             self.crear_ticket()
             return
 
+        if self.path == "/consultar_ticket":
+            self.consultar_ticket()
+            return
+
         if self.path == "/login":
             self.login()
             return
@@ -147,6 +151,10 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
             self.logout()
             return
 
+        if self.path.startswith("/consultar_ticket"):
+            self.consultar_ticket()
+            return
+        
         if self.path.startswith("/admin.html"):
             empleado = self.obtener_empleado_sesion()
 
@@ -471,6 +479,120 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
                 {
                     "status": "error",
                     "mensaje": "Error consultando tickets",
+                },
+                status=500,
+            )
+
+    def consultar_ticket(self):
+        """
+        Consulta pública de seguimiento de ticket.
+
+        Contramedida aplicada:
+        ya no se consulta el ticket solo por un identificador predecible.
+        Se exige también el correo del solicitante para reducir el riesgo
+        de enumeración de tickets.Además, la respuesta
+        pública no expone datos técnicos internos como IP reportada,
+        código diagnóstico o mensaje diagnóstico completo.
+        """
+        try:
+            content_length = int(self.headers["Content-Length"])
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            params = json.loads(post_data)
+
+            codigo_ticket = params.get("codigo_ticket", "").strip().upper()
+            correo_solicitante = params.get("correo_solicitante", "").strip().lower()
+
+            if not codigo_ticket or not correo_solicitante:
+                self.responder_json(
+                    {
+                        "status": "error",
+                        "message": "Debe ingresar el código del ticket y el correo del solicitante."
+                    },
+                    status=400,
+                )
+                return
+
+            if not codigo_ticket.startswith("TK-") or len(codigo_ticket) != 9 or not codigo_ticket[3:].isdigit():
+                self.responder_json(
+                    {
+                        "status": "error",
+                        "message": "El formato del código de ticket no es válido."
+                    },
+                    status=400,
+                )
+                return
+
+            if "@" not in correo_solicitante or "." not in correo_solicitante:
+                self.responder_json(
+                    {
+                        "status": "error",
+                        "message": "El correo ingresado no tiene un formato válido."
+                    },
+                    status=400,
+                )
+                return
+
+            conexion = obtener_conexion()
+            cursor = conexion.cursor()
+            # La consulta usa código + correo para verificar propiedad básica del ticket.
+            # También se usan parámetros para evitar inyección SQL en la consulta pública.
+            cursor.execute(
+                """
+                SELECT
+                    codigo_ticket,
+                    estado,
+                    empresa_solicitante,
+                    creado_en
+                FROM tickets
+                WHERE codigo_ticket = %s
+                  AND LOWER(correo_solicitante) = %s;
+                """,
+                (codigo_ticket, correo_solicitante),
+            )
+
+            fila = cursor.fetchone()
+
+            cursor.close()
+            conexion.close()
+
+            if fila is None:
+                self.responder_json(
+                    {
+                        "status": "error",
+                        "message": "No se encontró un ticket con los datos ingresados."
+                    },
+                    status=404,
+                )
+                return
+
+            estado = fila[1]
+
+            mensajes_estado = {
+                "diagnosticado": "El incidente fue revisado automáticamente y no se detectaron fallas técnicas en el equipo reportado.",
+                "en_revision": "El incidente está siendo revisado por el equipo de soporte Nivel 1.",
+                "asignado": "El incidente fue revisado por soporte y asignado a un área especializada para su atención.",
+                "cerrado": "El incidente fue solucionado y el ticket fue cerrado correctamente.",
+            }
+
+            ticket = {
+                "codigo_ticket": fila[0],
+                "estado": estado,
+                "empresa_solicitante": fila[2],
+                "creado_en": str(fila[3]),
+                "mensaje_estado": mensajes_estado.get(
+                    estado, "El caso se encuentra registrado en el sistema."
+                ),
+            }
+
+            self.responder_json({"status": "success", "ticket": ticket})
+
+        except Exception as error:
+            logging.error("Error consultando ticket: %s", error)
+
+            self.responder_json(
+                {
+                    "status": "error",
+                    "message": "No se pudo consultar el ticket en este momento.",
                 },
                 status=500,
             )

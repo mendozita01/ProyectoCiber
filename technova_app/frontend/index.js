@@ -89,8 +89,15 @@ const formView = document.getElementById('formView');
 const successView = document.getElementById('successView');
 
 btnAbrirModal.addEventListener('click', () => {
-    formView.style.display = 'block'; successView.style.display = 'none';
-    ticketForm.reset(); modalOverlay.classList.add('active');
+    formView.style.display = 'block'; 
+    successView.style.display = 'none';
+    
+    // Limpiar el mensaje de error si se vuelve a abrir el modal
+    const errorMsgDiv = document.getElementById('formErrorMsg');
+    if (errorMsgDiv) errorMsgDiv.style.display = 'none';
+
+    ticketForm.reset(); 
+    modalOverlay.classList.add('active');
 });
 
 const cerrarModal = () => { modalOverlay.classList.remove('active'); };
@@ -104,27 +111,169 @@ ticketForm.addEventListener('submit', function(e) {
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
     
+    const btnSubmit = this.querySelector('.btn-submit');
+    const originalText = btnSubmit.innerHTML;
+    btnSubmit.innerHTML = 'Verificando IP...';
+    btnSubmit.disabled = true;
+
+    const errorMsgDiv = document.getElementById('formErrorMsg');
+    errorMsgDiv.style.display = 'none';
+    errorMsgDiv.textContent = '';
+    
     fetch('/crear_ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     })
-    .then(response => {
+    .then(async response => {
+        const resData = await response.json();
+        // Si el código HTTP no es 200 OK, forzamos el error con el mensaje de Python
         if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+            throw new Error(resData.message || `Error HTTP: ${response.status}`);
         }
-        return response.json(); 
+        return resData; 
     })
     .then(data => {
         console.log("[+] Respuesta del Servidor:", data); 
 
+        const idDisplay = document.getElementById('ticketIdResult');
+        if (data.ticket) {
+            idDisplay.textContent = data.ticket; 
+        } else {
+            idDisplay.textContent = "Registrado";
+        }
+
         formView.style.display = 'none'; 
         successView.style.display = 'block'; 
+        
+        btnSubmit.innerHTML = originalText;
+        btnSubmit.disabled = false;
     })
     .catch(error => { 
         console.error("[-] Error en la petición:", error);
         
-        formView.style.display = 'none'; 
-        successView.style.display = 'block'; 
+        // Mostrar el error en la interfaz sin cerrar el modal
+        errorMsgDiv.textContent = error.message;
+        errorMsgDiv.style.display = 'block';
+        
+        btnSubmit.innerHTML = originalText;
+        btnSubmit.disabled = false;
+    });
+});
+
+
+// =========================================
+// Lógica del Modal de Consulta de Tickets
+// Versión asegurada: la consulta pública exige código + correo
+// y no muestra datos técnicos internos del diagnóstico.
+// =========================================
+const modalConsultaOverlay = document.getElementById('modalConsultaOverlay');
+const btnAbrirModalConsulta = document.getElementById('btnAbrirModalConsulta');
+const btnCerrarModalConsultaX = document.getElementById('btnCerrarModalConsultaX');
+const btnBuscarTicket = document.getElementById('btnBuscarTicket');
+const ticketSearchId = document.getElementById('ticketSearchId');
+const ticketSearchCorreo = document.getElementById('ticketSearchCorreo');
+const ticketResultArea = document.getElementById('ticketResultArea');
+const ticketErrorArea = document.getElementById('ticketErrorArea');
+
+function configEstado(estado) {
+    if (estado === "diagnosticado") return { texto: 'Diagnosticado', clase: 'badge-diagnosticado' };
+    if (estado === "asignado") return { texto: 'Asignado', clase: 'badge-asignado' };
+    if (estado === "cerrado") return { texto: 'Cerrado', clase: 'badge-cerrado' };
+    return { texto: 'En Revisión', clase: 'badge-revision' };
+}
+
+btnAbrirModalConsulta.addEventListener('click', () => {
+    modalConsultaOverlay.classList.add('active');
+
+    ticketSearchId.value = '';
+    ticketSearchCorreo.value = '';
+
+    ticketResultArea.style.display = 'none';
+    ticketErrorArea.style.display = 'none';
+    ticketErrorArea.textContent = '';
+});
+
+const cerrarModalConsulta = () => {
+    modalConsultaOverlay.classList.remove('active');
+};
+
+btnCerrarModalConsultaX.addEventListener('click', cerrarModalConsulta);
+
+modalConsultaOverlay.addEventListener('click', (e) => { 
+    if (e.target === modalConsultaOverlay) {
+        cerrarModalConsulta();
+    }
+});
+
+btnBuscarTicket.addEventListener('click', () => {
+    const codigoTicket = ticketSearchId.value.trim().toUpperCase();
+    const correoSolicitante = ticketSearchCorreo.value.trim().toLowerCase();
+
+    if (!codigoTicket || !correoSolicitante) {
+        ticketErrorArea.textContent = "Debe ingresar el código del ticket y el correo del solicitante.";
+        ticketErrorArea.style.display = 'block';
+        ticketResultArea.style.display = 'none';
+        return;
+    }
+
+    btnBuscarTicket.textContent = "Consultando...";
+    btnBuscarTicket.disabled = true;
+
+    ticketResultArea.style.display = 'none';
+    ticketErrorArea.style.display = 'none';
+    ticketErrorArea.textContent = '';
+
+    fetch('/consultar_ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            codigo_ticket: codigoTicket,
+            correo_solicitante: correoSolicitante
+        })
+    })
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.status === "error") {
+            throw new Error(
+                data.message ||
+                data.mensaje ||
+                "No se pudo consultar el ticket."
+            );
+        }
+
+        return data;
+    })
+    .then(data => {
+        const ticket = data.ticket;
+
+        document.getElementById('res-codigo').textContent = ticket.codigo_ticket;
+
+        const estadoConfig = configEstado(ticket.estado);
+        const spanEstado = document.getElementById('res-estado');
+        spanEstado.className = `badge ${estadoConfig.clase}`;
+        spanEstado.textContent = estadoConfig.texto;
+
+        const fechaObj = new Date(ticket.creado_en);
+        document.getElementById('res-fecha').textContent =
+            isNaN(fechaObj) ? ticket.creado_en : fechaObj.toLocaleString("es-VE");
+
+        document.getElementById('res-empresa').textContent =
+            ticket.empresa_solicitante || "No especificada";
+
+        document.getElementById('res-mensaje-estado').textContent =
+            ticket.mensaje_estado || "El caso se encuentra registrado en el sistema.";
+
+        ticketResultArea.style.display = 'block';
+        lucide.createIcons();
+    })
+    .catch(error => {
+        ticketErrorArea.textContent = error.message;
+        ticketErrorArea.style.display = 'block';
+    })
+    .finally(() => {
+        btnBuscarTicket.textContent = "Consultar Estado";
+        btnBuscarTicket.disabled = false;
     });
 });

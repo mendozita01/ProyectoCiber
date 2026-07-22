@@ -274,3 +274,65 @@ main.hero {
 .success-animation { margin: 0 auto 1.5rem auto; width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--success); display: flex; justify-content: center; align-items: center; background: rgba(16, 185, 129, 0.1); animation: scaleIn 0.5s ease-out forwards; }
 .success-animation i { color: var(--success); width: 40px; height: 40px; }
 @keyframes scaleIn { 0% { transform: scale(0); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+/* =========================================
+    ESTILOS PARA CONSULTA Y BOTONES
+   ========================================= */
+.hero-buttons { 
+    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+    opacity: 0; animation: blurFadeIn 1s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.6s; 
+}
+.btn-main { /* Ajuste para que comparta el retraso de animación con su contenedor */
+    animation: none; opacity: 1; min-width: 250px;
+}
+.btn-secondary {
+    background-color: transparent; color: var(--text-color); padding: 1.2rem; min-width: 250px;
+    font-size: 1.1rem; font-weight: 600; border: 2px solid var(--text-color); border-radius: 50px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.btn-secondary:hover { 
+    transform: scale(1.05) translateY(-3px); background-color: var(--text-color); color: var(--bg-color); 
+}
+.ticket-id-display { 
+    background: rgba(75, 0, 130, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 25px; 
+    border: 1px dashed var(--primary); text-align: center;
+}
+.ticket-id-display h2 { 
+    color: var(--primary); font-family: var(--font-mono); margin-top: 5px; font-size: 2rem;
+}
+
+/* =========================================
+   ESTILOS DE BADGES 
+   ========================================= */
+.badge { 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 6px; 
+    padding: 6px 12px; 
+    border-radius: 50px; 
+    font-size: 12px; 
+    font-weight: 600; 
+}
+.badge::before { 
+    content: ''; 
+    width: 6px; 
+    height: 6px; 
+    border-radius: 50%; 
+}
+
+/* Colores y puntitos según el estado */
+.badge-diagnosticado { background: rgba(16, 185, 129, 0.1); color: #059669; }
+.badge-diagnosticado::before { background: #059669; }
+
+.badge-revision { background: rgba(245, 158, 11, 0.1); color: #D97706; }
+.badge-revision::before { background: #D97706; }
+
+.badge-abierto { background: rgba(59, 130, 246, 0.1); color: #2563EB; }
+.badge-abierto::before { background: #2563EB; }
+
+.badge-cerrado { background: #F1F5F9; color: #475569; }
+.badge-cerrado::before { background: #475569; }
+
+.badge-asignado { background: rgba(139, 92, 246, 0.1); color: #6D28D9; }
+.badge-asignado::before { background: #6D28D9; }
