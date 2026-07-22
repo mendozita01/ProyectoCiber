@@ -75,7 +75,7 @@ class DiagNetHandler(BaseHTTPRequestHandler):
         Ruta principal de diagnostico.
 
         Ejemplo:
-        https://localhost:8080/diagnostico?ip=192.168.1.10
+        https://0.0.0.0:8080/diagnostico?ip=192.168.1.10
         """
         parametros = parse_qs(url.query)
         ip = parametros.get("ip", [""])[0].strip()
@@ -156,7 +156,7 @@ class DiagNetHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    servidor = HTTPServer(("localhost", 8080), DiagNetHandler)
+    servidor = HTTPServer(("0.0.0.0", 8080), DiagNetHandler)
     # ---------------------------------------------------------
     # HTTPS para DiagNet
     # ---------------------------------------------------------
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     )
     servidor.socket = contexto_ssl.wrap_socket(servidor.socket, server_side=True)
 
-    print("DiagNet API (segura) corriendo en https://localhost:8080")
+    print("DiagNet API (segura) corriendo en https://0.0.0.0:8080")
     print("Si no existen los certificados, ejecute antes: bash certs/generar_certs.sh")
 
     servidor.serve_forever()

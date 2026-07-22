@@ -424,7 +424,7 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         procese ningun dato.
         """
         ip_codificada = quote(ip_reportada)
-        url_diagnet = f"https://localhost:8080/diagnostico?ip={ip_codificada}"
+        url_diagnet = f"https://0.0.0.0:8080/diagnostico?ip={ip_codificada}"
 
         contexto_ssl = ssl.create_default_context()
         contexto_ssl.load_verify_locations(cafile="../../certs/diagnet.crt")
@@ -945,7 +945,7 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    servidor = HTTPServer(("localhost", 3000), TechNovaHandler)
+    servidor = HTTPServer(("0.0.0.0", 3000), TechNovaHandler)
 
     contexto_ssl = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     contexto_ssl.load_cert_chain(
@@ -954,7 +954,7 @@ if __name__ == "__main__":
     )
     servidor.socket = contexto_ssl.wrap_socket(servidor.socket, server_side=True)
 
-    print("TechNova App (segura) corriendo en https://localhost:3000")
-    print("Debe estar activa la API DiagNet en https://localhost:8080")
+    print("TechNova App (segura) corriendo en https://0.0.0.0:3000")
+    print("Debe estar activa la API DiagNet en https://0.0.0.0:8080")
     print("Si no existen los certificados, ejecute antes: bash certs/generar_certs.sh")
     servidor.serve_forever()
