@@ -1,4 +1,5 @@
 import logging
+import os
 import ssl
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import quote
@@ -424,7 +425,8 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
         procese ningun dato.
         """
         ip_codificada = quote(ip_reportada)
-        url_diagnet = f"https://0.0.0.0:8080/diagnostico?ip={ip_codificada}"
+        base_diagnet = os.getenv("DIAGNET_URL", "https://192.168.0.5:8080")
+        url_diagnet = f"{base_diagnet}/diagnostico?ip={ip_codificada}"
 
         contexto_ssl = ssl.create_default_context()
         contexto_ssl.load_verify_locations(cafile="../../certs/diagnet.crt")
