@@ -9,15 +9,21 @@ from db import obtener_conexion
 # =========================================================
 # VERSION ASEGURADA - DiagNet API
 #
-# Cambios respecto a la version vulnerable:
-# 1. El servicio ahora escucha por HTTPS (TLS) en lugar de
-#    HTTP en claro, usando el certificado autofirmado del
-#    laboratorio (certs/diagnet.crt y certs/diagnet.key).
-#    Contramedida para: transmision en texto plano (A04) y
-#    exposicion del canal a interceptacion/MITM (API10).
-# 2. Se valida el formato del parametro "ip" antes de usarlo
-#    en cualquier consulta (defensa adicional, aunque la
-#    consulta ya usaba parametros en la version vulnerable).
+# Esta API representa el servicio externo de diagnostico que
+# consume TechNova al crear un ticket.
+#
+# En la version vulnerable, la comunicacion entre TechNova y
+# DiagNet se realizaba por HTTP, lo que facilitaba la
+# interceptacion o manipulacion de la respuesta.
+#
+# En esta version, DiagNet se expone por HTTPS usando el
+# certificado del laboratorio. La validacion de confianza se
+# completa del lado de TechNova, donde se carga el certificado
+# conocido de DiagNet antes de consumir la API.
+#
+# Adicionalmente, se valida el formato de la IP recibida y la
+# consulta al inventario se realiza con parametros (%s), evitando
+# concatenar entradas externas dentro del SQL.
 # =========================================================
 
 IP_REGEX = re.compile(
@@ -73,7 +79,9 @@ class DiagNetHandler(BaseHTTPRequestHandler):
         """
         parametros = parse_qs(url.query)
         ip = parametros.get("ip", [""])[0].strip()
-
+        # Validacion de entrada:
+        # DiagNet solo procesa direcciones IPv4 con formato valido.
+        # Esto evita consultas con parametros mal formados o inesperados.
         if not ip or not IP_REGEX.match(ip):
             enviar_json(self, {
                 "error": "Debe enviar una IPv4 valida en el parametro ?ip="
@@ -83,7 +91,10 @@ class DiagNetHandler(BaseHTTPRequestHandler):
         try:
             conexion = obtener_conexion()
             cursor = conexion.cursor()
-
+            # Consulta parametrizada:
+            # La IP recibida se envia como parametro (%s), no se concatena
+            # dentro del SQL. Esto evita que una entrada externa sea
+            # interpretada como parte de la consulta.
             cursor.execute(
                 """
                 SELECT
@@ -146,7 +157,17 @@ class DiagNetHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     servidor = HTTPServer(("localhost", 8080), DiagNetHandler)
-
+    # ---------------------------------------------------------
+    # HTTPS para DiagNet
+    # ---------------------------------------------------------
+    # En la version vulnerable, TechNova consumia DiagNet por HTTP,
+    # por lo que un atacante en la red podia interceptar o alterar
+    # la respuesta de la API.
+    #
+    # En la version asegurada, DiagNet presenta un certificado TLS.
+    # TechNova valida ese certificado conocido antes de procesar la
+    # respuesta, reduciendo el riesgo de suplantacion o manipulacion
+    # del servicio externo.
     contexto_ssl = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     contexto_ssl.load_cert_chain(
         certfile="../certs/diagnet.crt",
@@ -155,7 +176,6 @@ if __name__ == "__main__":
     servidor.socket = contexto_ssl.wrap_socket(servidor.socket, server_side=True)
 
     print("DiagNet API (segura) corriendo en https://localhost:8080")
-    print("Ejemplo: https://localhost:8080/diagnostico?ip=192.168.1.10")
     print("Si no existen los certificados, ejecute antes: bash certs/generar_certs.sh")
 
     servidor.serve_forever()
