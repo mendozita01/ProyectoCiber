@@ -15,12 +15,8 @@ DROP TABLE IF EXISTS diagnet_inventario_ips;
 DROP TABLE IF EXISTS catalogo_diagnosticos;
 DROP TABLE IF EXISTS empleados;
 
-DROP SEQUENCE IF EXISTS ticket_codigo_seq;
-
-CREATE SEQUENCE ticket_codigo_seq
-START WITH 1
-INCREMENT BY 1;
-
+-- Extensión nativa de PostgreSQL usada para generar bytes aleatorios seguros.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE empleados (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -86,7 +82,8 @@ CREATE TABLE tickets (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
     codigo_ticket VARCHAR(20) NOT NULL UNIQUE
-        DEFAULT ('TK-' || LPAD(nextval('ticket_codigo_seq')::TEXT, 6, '0')),
+    CONSTRAINT chk_codigo_ticket_formato
+    CHECK (codigo_ticket ~ '^TK-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$'),
 
     nombre_solicitante VARCHAR(120) NOT NULL,
     correo_solicitante VARCHAR(120),
@@ -123,6 +120,53 @@ CREATE TABLE tickets (
     CHECK (estado IN ('abierto', 'en_revision', 'diagnosticado', 'asignado', 'cerrado'))
 );
 
+-- =========================================================
+-- CONTRAMEDIDA: CÓDIGOS DE TICKET NO SECUENCIALES
+-- =========================================================
+-- En la versión vulnerable, los tickets usaban códigos
+-- secuenciales como TK-000001, lo que facilitaba la enumeración.
+--
+-- En la versión asegurada, PostgreSQL genera un código aleatorio
+-- antes de insertar el ticket. Además, la columna codigo_ticket
+-- mantiene restricción UNIQUE para evitar duplicados.
+-- =========================================================
+
+CREATE OR REPLACE FUNCTION asignar_codigo_ticket_seguro()
+RETURNS TRIGGER AS $$
+DECLARE
+    caracteres TEXT := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    codigo_generado TEXT;
+    i INTEGER;
+    indice INTEGER;
+BEGIN
+    IF NEW.codigo_ticket IS NULL OR NEW.codigo_ticket = '' THEN
+        LOOP
+            codigo_generado := 'TK-';
+
+            FOR i IN 1..8 LOOP
+                indice := (get_byte(gen_random_bytes(1), 0) % length(caracteres)) + 1;
+                codigo_generado := codigo_generado || substr(caracteres, indice, 1);
+            END LOOP;
+
+            EXIT WHEN NOT EXISTS (
+                SELECT 1
+                FROM tickets
+                WHERE codigo_ticket = codigo_generado
+            );
+        END LOOP;
+
+        NEW.codigo_ticket := codigo_generado;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER trg_asignar_codigo_ticket_seguro
+BEFORE INSERT ON tickets
+FOR EACH ROW
+EXECUTE FUNCTION asignar_codigo_ticket_seguro();
 
 CREATE TABLE logs_eventos (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
