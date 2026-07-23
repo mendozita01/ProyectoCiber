@@ -171,7 +171,7 @@ class TechNovaHandler(SimpleHTTPRequestHandler):
 
     def consultar_diagnet(self, ip_reportada):
         ip_codificada = quote(ip_reportada)
-        base_diagnet = os.getenv("DIAGNET_URL", "http://127.0.0.1:8080")
+        base_diagnet = os.getenv("DIAGNET_URL", "http://192.168.0.5:8080")
         url_diagnet = f"{base_diagnet}/diagnostico?ip={ip_codificada}"
 
         with urllib.request.urlopen(url_diagnet) as response:
