@@ -22,9 +22,9 @@
 -- technova_app/backend/generar_hash.py
 -- =========================================================
 -- Credenciales demo para pruebas controladas:
--- admin      -> Admin123
--- soporte1   -> Soporte123
--- analista1  -> Analista123
+-- admin      -> admin12
+-- soporte1   -> soporte123
+-- analista1  -> analista123
 
 
 TRUNCATE TABLE

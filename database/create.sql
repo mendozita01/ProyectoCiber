@@ -2,7 +2,6 @@
 -- BASE DE DATOS: technova
 -- Proyecto: technova / DiagNet
 -- Motor: PostgreSQL
--- Versión vulnerable inicial
 -- =========================================================
 -- IMPORTANTE:
 -- Este script se ejecuta dentro de la base de datos TechNova.

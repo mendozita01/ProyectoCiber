@@ -105,9 +105,9 @@ continuar.
 
 | Usuario | Contraseña | Rol |
 |---|---|---|
-| `admin` | `Admin123` | admin |
-| `soporte1` | `Soporte123` | soporte |
-| `analista1` | `Analista123` | analista |
+| `admin` | `admin12` | admin |
+| `soporte1` | `soporte123` | soporte |
+| `analista1` | `analista123` | analista |
 
 ## Prueba de cierre (validar que el ataque ya no funciona)
 
