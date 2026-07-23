@@ -13,7 +13,7 @@ Contramedidas para **API10:2023 (Consumo No Seguro de APIs)** y
   para TechNova como para DiagNet.
 - **Base de datos:** PostgreSQL (via `psycopg2`).
 - **Frontend:** HTML/CSS/JS nativo (sin frameworks).
-- **Cifrado de contraseñas:** `bcrypt` (factor de costo 12).
+- **Cifrado de contraseñas:** PBKDF2-HMAC-SHA256 (150 000 iteraciones, salt individual por usuario), vía el módulo estándar `hashlib` — sin dependencias externas.
 - **Transporte:** HTTPS/TLS con certificados autofirmados del laboratorio.
 
 ## Estructura del repositorio
@@ -24,7 +24,7 @@ ProyectoCiber/
 │   └── generar_certs.sh
 ├── database/
 │   ├── create.sql
-│   └── insert.sql             # Usuarios de demo con hash bcrypt
+│   └── insert.sql             # Usuarios de demo con hash PBKDF2-HMAC-SHA256
 ├── diagnet_api/
 │   ├── db.py
 │   └── servidor_api.py        # API externa DiagNet (HTTPS)
@@ -32,7 +32,7 @@ ProyectoCiber/
 │   ├── backend/
 │   │   ├── app.py             # Backend TechNova (HTTPS + validaciones)
 │   │   ├── db.py
-│   │   └── generar_hash.py    # Utilidad para generar hashes bcrypt
+│   │   └── generar_hash.py    # Utilidad para generar hashes PBKDF2-HMAC-SHA256
 │   └── frontend/
 ├── requirements.txt
 └── .env.example
@@ -54,8 +54,8 @@ ProyectoCiber/
 
 | Falla en la versión vulnerable | Contramedida en esta versión |
 |---|---|
-| Contraseñas con `MD5()` sin salt | Hashes `bcrypt` (salt individual embebido, factor de costo 12) |
-| Comparación de hash dentro del SQL (`password_hash = MD5(%s)`) | Verificación en Python con `bcrypt.checkpw()` |
+| Contraseñas con `MD5()` sin salt | Hashes `PBKDF2-HMAC-SHA256` con salt individual por usuario (`secrets.token_hex(16)`) y 150 000 iteraciones |
+| Comparación de hash dentro del SQL (`password_hash = MD5(%s)`) | Verificación en Python con `verificar_password()`, que recalcula el hash y compara con `hmac.compare_digest()` (evita timing attacks) |
 | Login por HTTP plano | Formulario y API sirven por HTTPS |
 | Mensajes distintos para "usuario no existe" vs "contraseña incorrecta" (permite enumerar usuarios) | Mensaje genérico único: "Usuario o contraseña incorrectos" |
 | Errores SQL/excepciones expuestos al cliente (`"detalle": str(error)`) | Los detalles se registran solo en `technova_seguro.log`; el cliente recibe un mensaje genérico |
@@ -123,9 +123,10 @@ Repetir desde Kali el mismo ataque documentado en la rama
    debe rechazarlo antes de que llegue a la consulta SQL — no debe
    aparecer ningún error de sintaxis SQL en la respuesta ni en pantalla.
 3. Intentar extraer y crackear `password_hash` de la tabla `empleados`:
-   aunque se obtenga la base de datos, los hashes son `bcrypt` con salt
-   individual, por lo que un ataque de diccionario/Rainbow Table sobre
-   ellos deja de ser viable en un tiempo razonable.
+   aunque se obtenga la base de datos, los hashes son `PBKDF2-HMAC-SHA256`
+   con salt individual y 150 000 iteraciones, por lo que un ataque de
+   diccionario/Rainbow Table sobre ellos deja de ser viable en un tiempo
+   razonable.
 
 Capturar evidencia (pantallazos) de cada paso fallando como cierre del
 proyecto.
