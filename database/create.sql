@@ -117,7 +117,7 @@ CREATE TABLE tickets (
     ON DELETE SET NULL,
 
     CONSTRAINT chk_estado_ticket
-    CHECK (estado IN ('abierto', 'en_revision', 'diagnosticado', 'asignado', 'cerrado'))
+    CHECK (estado IN ('diagnosticado', 'en_revision', 'asignado', 'cerrado'))
 );
 
 -- =========================================================

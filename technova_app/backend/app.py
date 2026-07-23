@@ -138,7 +138,6 @@ CODIGOS_DIAGNOSTICO_VALIDOS = {
     "OK-200",
     "HIGH_LATENCY",
     "HOST_DOWN",
-    "IP_NOT_FOUND",
     "TIMEOUT",
 }
 
