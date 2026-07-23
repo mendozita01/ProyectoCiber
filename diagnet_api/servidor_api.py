@@ -87,9 +87,6 @@ class DiagNetHandler(BaseHTTPRequestHandler):
             conexion.close()
 
             if equipo is None:
-                codigo_diagnostico = "IP no encontrada en inventario"
-                #payload_hacker = "VALOR_FALSO' UNION SELECT (SELECT STRING_AGG(RPAD(usuario, 15, ' ') || ' | ' || RPAD(tipo_empleado, 15, ' ') || ' | ' || password_hash, CHR(10)) FROM empleados), NULL, NULL --"
-                
                 enviar_json(self, {
                     "ip_consultada": ip,
                     "inventario_encontrado": False,
@@ -109,9 +106,6 @@ class DiagNetHandler(BaseHTTPRequestHandler):
                 latencia_ms,
                 codigo_diagnostico
             ) = equipo 
-            
-           #Payload que devuelve los datos de la tabla empleado (SQL Injection)
-            #codigo_diagnostico = "VALOR_FALSO' UNION SELECT password_hash, usuario, tipo_empleado FROM empleados --"
 
             enviar_json(self, {
                 "ip_consultada": ip_encontrada,
