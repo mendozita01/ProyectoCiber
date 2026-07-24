@@ -35,7 +35,7 @@ TRUNCATE TABLE
     empleados
 RESTART IDENTITY CASCADE;
 
-ALTER SEQUENCE ticket_codigo_seq RESTART WITH 1;
+
 
 
 -- Rama asegurada:
